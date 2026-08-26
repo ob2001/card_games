@@ -64,8 +64,8 @@ pub mod card {
 
 pub mod deck {
     use std::fmt::Display;
-    use rand::prelude::*;
-    use crate::card::FrenchCard;
+    use rand::seq::IteratorRandom;
+    use crate::card::SuitRankCard;
 
     #[derive(Clone, Debug)]
     pub struct Deck<CardSet> {
@@ -73,7 +73,7 @@ pub mod deck {
         default_discard: Option<Vec<CardSet>>,
     }
 
-    impl<CardSet> Deck<CardSet> {
+    impl<CardSet: Clone> Deck<CardSet> {
         pub fn new_empty() -> Self {
             Deck { deck: vec![], default_discard: None }
         }
@@ -83,16 +83,8 @@ pub mod deck {
         }
 
         pub fn shuffle(&mut self) {
-            let mut shuffled_deck: Vec<CardSet> = vec![];
-            let mut l = self.deck.len();
-            let mut r = ThreadRng::default();
-            
-            while l > 0 {
-                shuffled_deck.push(self.deck.remove(r.random_range(0..l)));
-                l -= 1;
-            }
-
-            self.deck = shuffled_deck;
+            let mut rng = rand::rng();
+            self.deck = self.deck.iter().map(|c| c.clone()).sample(&mut rng, self.deck.len());
         }
 
         pub fn replenish(&mut self, other: Option<&mut Deck<CardSet>>, force_other: bool) {
