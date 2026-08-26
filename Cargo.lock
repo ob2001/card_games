@@ -3,7 +3,7 @@
 version = 4
 
 [[package]]
-name = "cards_2"
+name = "card_games"
 version = "0.1.0"
 dependencies = [
  "rand",
