@@ -83,8 +83,10 @@ pub mod deck {
         }
 
         pub fn shuffle(&mut self) {
-            let mut rng = rand::rng();
-            self.deck = self.deck.iter().map(|c| c.clone()).sample(&mut rng, self.deck.len());
+            for i in (1..self.deck.len()).rev() {
+                let j = rand::random_range(0..i + 1);
+                self.deck.swap(i, j)
+            }
         }
 
         pub fn replenish(&mut self, other: Option<&mut Deck<CardSet>>, force_other: bool) {
@@ -275,10 +277,10 @@ pub trait PlayableTo {
 }
 
 fn main() {
-    use crate::klondike::Klondike;
+    use crate::deck::Deck;
 
-    let mut game = Klondike::new_game_default();
-    println!("{:?}", game);
-    game.init_game();
-    println!("{:?}", game);
+    let mut deck = Deck::new_standard_french_deck();
+    println!("{}", deck);
+    deck.shuffle();
+    println!("{}", deck);
 }
