@@ -18,15 +18,15 @@ pub mod card {
     }
 
     #[derive(Clone, Debug)]
-    pub struct FrenchCard {
+    pub struct CardSuitRank {
         suit: FrenchSuit,
         rank: FrenchRank,
         is_face_up: bool,
     }
 
-    impl FrenchCard {
-        pub fn new(suit: FrenchSuit, rank: FrenchRank) -> FrenchCard {
-            FrenchCard { suit, rank, is_face_up: true }
+    impl CardSuitRank {
+        pub fn new(suit: FrenchSuit, rank: FrenchRank) -> CardSuitRank {
+            CardSuitRank { suit, rank, is_face_up: true }
         }
 
         pub fn flip(&mut self) {
@@ -42,7 +42,7 @@ pub mod card {
         }
     }
 
-    impl Display for FrenchCard {
+    impl Display for CardSuitRank {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
             use FrenchRank::*;
             use FrenchSuit::*;
@@ -65,7 +65,7 @@ pub mod card {
 pub mod deck {
     use std::fmt::Display;
     use rand::seq::IteratorRandom;
-    use crate::card::SuitRankCard;
+    use crate::card::CardSuitRank;
 
     #[derive(Clone, Debug)]
     pub struct Deck<CardSet> {
@@ -114,17 +114,17 @@ pub mod deck {
         }
     }
 
-    impl Deck<FrenchCard> {
-        pub fn standard_french_deck() -> Deck<FrenchCard> {
-            use crate::card::{FrenchCard, FrenchRank::{self, *}, FrenchSuit::*};
+    impl Deck<CardSuitRank> {
+        pub fn new_standard_french_deck() -> Deck<CardSuitRank> {
+            use crate::card::{CardSuitRank, FrenchRank::{self, *}, FrenchSuit::*};
             let mut deck = vec![];
             for suit in [Spades, Hearts, Clubs, Diamonds] {
                 for i in 1..11 {
-                    deck.push(FrenchCard::new(suit.clone(), FrenchRank::Pip(i)));
+                    deck.push(CardSuitRank::new(suit.clone(), FrenchRank::Pip(i)));
                 }
 
                 for rank in [Jack, Queen, King] {
-                    deck.push(FrenchCard::new(suit.clone(), rank));
+                    deck.push(CardSuitRank::new(suit.clone(), rank));
                 }
             }
 
@@ -132,7 +132,7 @@ pub mod deck {
         }
     }
 
-    impl Display for Deck<FrenchCard> {
+    impl Display for Deck<CardSuitRank> {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
             for card in &self.deck {
                 writeln!(f, "{}", card)?;
@@ -143,11 +143,11 @@ pub mod deck {
 }
 
 pub mod hand {
-    use crate::card::FrenchCard;
+    use crate::card::CardSuitRank;
 
     #[derive(Debug)]
     pub struct Hand {
-        pub hand: Vec<FrenchCard>,
+        pub hand: Vec<CardSuitRank>,
     }
 
     impl Hand {
@@ -188,7 +188,7 @@ pub mod tableau {
 
 pub mod player {
     use crate::{
-        PlayableTo, card::FrenchCard, deck::Deck, hand::Hand,
+        PlayableTo, card::CardSuitRank, deck::Deck, hand::Hand,
     };
 
     #[derive(Debug)]
@@ -202,7 +202,7 @@ pub mod player {
             Player { name, hand: Hand::new_empty() }
         }
 
-        pub fn draw_from(&mut self, deck: &mut Deck<FrenchCard>) {
+        pub fn draw_from(&mut self, deck: &mut Deck<CardSuitRank>) {
             if let Ok(card) = deck.draw() {
                 self.hand.hand.push(card);
             } else {
@@ -212,11 +212,11 @@ pub mod player {
             }
         }
 
-        pub fn play_card_to(&mut self, card: FrenchCard, playable: &mut impl PlayableTo) {
+        pub fn play_card_to(&mut self, card: CardSuitRank, playable: &mut impl PlayableTo) {
             playable.play_to(card);
         }
 
-        pub fn discard_to(&mut self, card: FrenchCard, discard: &mut Deck<FrenchCard>) {
+        pub fn discard_to(&mut self, card: CardSuitRank, discard: &mut Deck<CardSuitRank>) {
             discard.push(card);
         }
     }
@@ -224,7 +224,7 @@ pub mod player {
 
 pub mod klondike {
     use crate::{
-        card::FrenchCard,
+        card::CardSuitRank,
         deck::Deck,
         player::Player,
         tableau::Tableau,
@@ -233,17 +233,17 @@ pub mod klondike {
     #[derive(Debug)]
     pub struct Klondike {
         player: Player,
-        talon: Deck<FrenchCard>,
-        talon_discard: Deck<FrenchCard>,
-        tableau: Tableau<FrenchCard>,
-        foundation: Tableau<FrenchCard>,
+        talon: Deck<CardSuitRank>,
+        talon_discard: Deck<CardSuitRank>,
+        tableau: Tableau<CardSuitRank>,
+        foundation: Tableau<CardSuitRank>,
     }
 
     impl Klondike {
         pub fn new_game_default() -> Self {
             Klondike { 
                 player: Player::new(String::from("Player1")),
-                talon: Deck::standard_french_deck(),
+                talon: Deck::new_standard_french_deck(),
                 talon_discard: Deck::new_empty(),
                 tableau: Tableau::new(7),
                 foundation: Tableau::new(4),
@@ -271,7 +271,7 @@ pub mod klondike {
 }
 
 pub trait PlayableTo {
-    fn play_to(&mut self, card: card::FrenchCard);
+    fn play_to(&mut self, card: card::CardSuitRank);
 }
 
 fn main() {
