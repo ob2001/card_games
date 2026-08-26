@@ -1,7 +1,7 @@
 pub mod card {
     use std::fmt::Display;
 
-    #[derive(Clone, Debug)]
+    #[derive(Clone, Copy, Debug)]
     pub enum FrenchSuit {
         Spades,
         Hearts,
@@ -9,7 +9,7 @@ pub mod card {
         Diamonds,
     }
 
-    #[derive(Clone, Debug)]
+    #[derive(Clone, Copy, Debug)]
     pub enum FrenchRank {
         Pip(u32),
         Jack,
@@ -17,7 +17,7 @@ pub mod card {
         King,
     }
 
-    #[derive(Clone, Debug)]
+    #[derive(Clone, Copy, Debug)]
     pub struct CardSuitRank {
         suit: FrenchSuit,
         rank: FrenchRank,
