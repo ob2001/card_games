@@ -1,11 +1,11 @@
-use crate::card::CardSuitRank;
+use crate::prelude::*;
 
 #[derive(Debug)]
-pub struct Hand {
-    pub hand: Vec<CardSuitRank>,
+pub struct Hand<CardSet: Card> {
+    pub hand: Vec<CardSet>,
 }
 
-impl Hand {
+impl<CardSet: Card> Hand<CardSet> {
     pub fn new_empty() -> Self {
         Hand { hand: vec![] }
     }

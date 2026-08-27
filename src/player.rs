@@ -1,19 +1,22 @@
 use crate::{
-    PlayableTo, card::CardSuitRank, deck::Deck, hand::Hand,
+    prelude::*,
+    card::Card,
+    deck::Deck,
+    hand::Hand,
 };
 
 #[derive(Debug)]
-pub struct Player {
+pub struct Player<CardSet: Card> {
     name: String,
-    hand: Hand,
+    hand: Hand<CardSet>,
 }
 
-impl Player {
+impl<CardSet: Card> Player<CardSet> {
     pub fn new(name: String) -> Self {
         Player { name, hand: Hand::new_empty() }
     }
 
-    pub fn draw_from(&mut self, deck: &mut Deck<CardSuitRank>) {
+    pub fn draw_from(&mut self, deck: &mut Deck<CardSet>) {
         if let Ok(card) = deck.draw() {
             self.hand.hand.push(card);
         } else {
@@ -23,11 +26,11 @@ impl Player {
         }
     }
 
-    pub fn play_card_to(&mut self, card: CardSuitRank, playable: &mut impl PlayableTo) {
+    pub fn play_card_to(&mut self, card: CardSet, playable: &mut impl PlayableTo<CardSet>) {
         playable.play_to(card);
     }
 
-    pub fn discard_to(&mut self, card: CardSuitRank, discard: &mut Deck<CardSuitRank>) {
+    pub fn discard_to(&mut self, card: CardSet, discard: &mut Deck<CardSet>) {
         discard.push(card);
     }
 }

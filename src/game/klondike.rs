@@ -1,5 +1,5 @@
 use crate::{
-    card::CardSuitRank,
+    prelude::*,
     deck::Deck,
     player::Player,
     tableau::Tableau,
@@ -7,11 +7,11 @@ use crate::{
 
 #[derive(Debug)]
 pub struct Klondike {
-    player: Player,
-    talon: Deck<CardSuitRank>,
-    talon_discard: Deck<CardSuitRank>,
-    tableau: Tableau<CardSuitRank>,
-    foundation: Tableau<CardSuitRank>,
+    player: Player<FrenchCard>,
+    talon: Deck<FrenchCard>,
+    talon_discard: Deck<FrenchCard>,
+    tableau: Tableau<FrenchCard>,
+    foundation: Tableau<FrenchCard>,
 }
 
 impl Klondike {
@@ -20,8 +20,8 @@ impl Klondike {
             player: Player::new(String::from("Player1")),
             talon: Deck::new_standard_french_deck(),
             talon_discard: Deck::new_empty(),
-            tableau: Tableau::new(7),
-            foundation: Tableau::new(4),
+            tableau: Tableau::new(Some(StackVariant::FanVertical), 7),
+            foundation: Tableau::new(Some(StackVariant::Flush), 4),
         }
     }
 
