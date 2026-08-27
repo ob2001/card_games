@@ -24,17 +24,15 @@ impl<CardSet: Clone> Deck<CardSet> {
     }
 
     pub fn replenish(&mut self, other: Option<&mut Deck<CardSet>>, force_other: bool) {
-        self.deck.reverse();
-
         if let Some(discard) = &mut self.default_discard && !force_other {
-            self.deck.append(discard);
+            discard.append(&mut self.deck);
+            self.deck = discard.to_vec();
         } else if let Some(other) = other {
-            self.deck.append(&mut other.deck);
+            other.deck.append(&mut self.deck);
+            self.deck = other.deck.to_vec();
         } else {
-            panic!();
+            panic!("Deck empty with no source to replenish");
         }
-        
-        self.deck.reverse();
     }
 
     pub fn push(&mut self, card: CardSet) {
@@ -48,9 +46,21 @@ impl<CardSet: Clone> Deck<CardSet> {
     pub fn get_inner_deck_mut(&mut self) -> &mut Vec<CardSet> {
         &mut self.deck
     }
+
+    pub fn all_face_up(&mut self) {
+        for c in self.deck.iter_mut() {
+            c.flip_face_up();
+        }
+    }
+
+    pub fn all_face_down(&mut self) {
+        for c in self.deck.iter_mut() {
+            c.flip_face_down();
+        }
+    }
 }
 
-impl Deck<CardSuitRank> {
+impl Deck<FrenchCard> {
     pub fn new_standard_french_deck() -> Deck<CardSuitRank> {
         use crate::card::{CardSuitRank, FrenchRank::{self, *}, FrenchSuit::*};
         let mut deck = vec![];
