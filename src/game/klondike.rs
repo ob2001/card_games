@@ -2,7 +2,7 @@ use crate::{
     prelude::*,
     deck::Deck,
     player::Player,
-    tableau::Tableau,
+    tableau::{Tableau, TableauVariant},
 };
 
 #[derive(Debug)]
@@ -20,8 +20,8 @@ impl Klondike {
             player: Player::new(String::from("Player1")),
             talon: Deck::new_standard_french_deck(),
             talon_discard: Deck::new_empty(),
-            tableau: Tableau::new(Some(StackVariant::FanVertical), 7),
-            foundation: Tableau::new(Some(StackVariant::Flush), 4),
+            tableau: Tableau::new(Some(TableauVariant::Horizontal), Some(StackVariant::FanVertical), 7),
+            foundation: Tableau::new(Some(TableauVariant::Horizontal), Some(StackVariant::Flush), 4),
         }
     }
 

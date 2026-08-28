@@ -10,8 +10,8 @@ pub enum StackVariant {
 #[derive(Clone, Debug)]
 pub struct Stack<CardSet: Card> {
     stack: Vec<CardSet>,
+    lim: Option<usize>,
     variant: StackVariant,
-    lim: Option<usize>
 }
 
 impl<CardSet: Card> Stack<CardSet> {
