@@ -6,7 +6,7 @@ use crate::{
 
 #[derive(Debug)]
 pub struct Player<CardSet: Card> {
-    name: String,
+    pub name: String,
     hand: Vec<CardSet>,
 }
 
