@@ -21,8 +21,13 @@ impl<CardSet: Card> Stack<CardSet> {
 }
 
 impl<CardSet: Card> PlayableTo<CardSet> for Stack<CardSet> {
-    fn play_to(&mut self, card: CardSet)
+    fn play_to(&mut self, card: CardSet) -> Result<(), CardSet>
     {
-        self.stack.push(card);
+        if self.lim.is_some() && self.stack.len() < self.lim.unwrap() {
+            self.stack.push(card);
+            Ok(())
+        } else {
+            Err(card)
+        }
     }
 }

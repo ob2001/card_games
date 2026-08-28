@@ -9,7 +9,8 @@ pub struct Tableau<CardSet: Card> {
 }
 
 impl<CardSet: Card> Tableau<CardSet> {
-    pub fn new(stack_variant: Option<StackVariant>, cols: usize) -> Self {
-        Tableau { tableau: vec![Stack::new(stack_variant, None); cols] }
+impl<CardSet: Card> PlayableTo<CardSet> for Tableau<CardSet> {
+    fn play_to(&mut self, card: CardSet) -> Result<(), CardSet> {
+        self.tableau[self.selected_stack].play_to(card)
     }
 }
