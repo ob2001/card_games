@@ -8,7 +8,7 @@ pub mod game;
 pub mod ui;
 
 pub trait PlayableTo<CardSet: card::Card> {
-    fn play_to(&mut self, card: CardSet);
+    fn play_to(&mut self, card: CardSet) -> Result<(), CardSet>;
 }
 
 pub trait Flippable {
