@@ -21,7 +21,7 @@ pub mod prelude {
     pub use std::fmt::{Debug, Display};
     pub use crate::{
         PlayableTo, Flippable,
-        card::{Card, FrenchCard, ItalianCard},
+        card::{Card, FrenchCard, ItalianCard, TarocchiCard, TarotCard},
         stack::StackVariant,
     };
 }

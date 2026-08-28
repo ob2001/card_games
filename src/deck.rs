@@ -1,6 +1,6 @@
 use crate::{
     prelude::*,
-    card::SuitRankCard
+    card::{FlippableCard, FrenchCard}
 };
 
 #[derive(Clone, Debug)]
@@ -48,7 +48,9 @@ impl<CardSet: Card> Deck<CardSet> {
     pub fn get_inner_deck_mut(&mut self) -> &mut Vec<CardSet> {
         &mut self.deck
     }
+}
 
+impl<C: Card + Flippable> Deck<C> {
     pub fn all_face_up(&mut self) {
         for c in self.deck.iter_mut() {
             c.flip_face_up();
@@ -62,17 +64,19 @@ impl<CardSet: Card> Deck<CardSet> {
     }
 }
 
-impl Deck<FrenchCard> {
-    pub fn new_standard_french_deck() -> Deck<FrenchCard> {
-        use crate::card::{SuitRankCard, FrenchRank::{self, *}, FrenchSuit::*};
+impl Deck<FlippableCard<FrenchCard>> {
+    pub fn new_standard_french_deck() -> Deck<FlippableCard<FrenchCard>> {
+        use crate::card::{FlippableCard, FrenchCard::*, FrenchRank::*};
         let mut deck = vec![];
-        for suit in [Spades, Hearts, Clubs, Diamonds] {
-            for i in 1..11 {
-                deck.push(SuitRankCard::new(suit.clone(), FrenchRank::Pip(i)));
+        for i in 1..11 {
+            for card in [Spades(Pip(i)), Hearts(Pip(i)), Clubs(Pip(i)), Diamonds(Pip(i))] {
+                deck.push(FlippableCard::new(card.clone()));
             }
+        }
 
-            for rank in [Jack, Queen, King] {
-                deck.push(SuitRankCard::new(suit.clone(), rank));
+        for rank in [Jack, Queen, King] {
+            for card in [Spades(rank), Hearts(rank), Clubs(rank), Diamonds(rank)] {
+                deck.push(FlippableCard::new(card.clone()));
             }
         }
 
@@ -80,7 +84,7 @@ impl Deck<FrenchCard> {
     }
 }
 
-impl<S: crate::card::Suit, R: crate::card::Rank> Display for Deck<SuitRankCard<S, R>> {
+impl<C: Card> Display for Deck<C> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         for card in &self.deck {
             writeln!(f, "{}", card)?;

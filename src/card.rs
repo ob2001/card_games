@@ -1,29 +1,29 @@
 use crate::prelude::*;
 
-pub trait Card: Flippable + Debug + Clone {}
-pub trait Suit: Debug + Clone + Copy + Display {}
+pub trait Card: Debug + Display + Clone {}
+// pub trait Suit: Debug + Clone + Copy {}
 pub trait Rank: Debug + Clone + Copy + PartialEq + Eq + PartialOrd + Ord + Display {}
 
 #[derive(Clone, Copy, Debug)]
-pub enum FrenchSuit {
-    Spades,
-    Hearts,
-    Clubs,
-    Diamonds,
+pub enum FrenchCard {
+    Spades(FrenchRank),
+    Hearts(FrenchRank),
+    Clubs(FrenchRank),
+    Diamonds(FrenchRank),
 }
 
-impl Display for FrenchSuit {
+impl Card for FrenchCard {}
+
+impl Display for FrenchCard {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Spades => {write!(f, "♠")},
-            Self::Hearts => {write!(f, "♥")},
-            Self::Clubs => {write!(f, "♣")},
-            Self::Diamonds => {write!(f, "♦")},
+            Self::Spades(r) => {write!(f, "{}♠", r)},
+            Self::Hearts(r) => {write!(f, "{}♥", r)},
+            Self::Clubs(r) => {write!(f, "{}♣", r)},
+            Self::Diamonds(r) => {write!(f, "{}♦", r)},
         }
     }
 }
-
-impl Suit for FrenchSuit {}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum FrenchRank {
@@ -33,10 +33,12 @@ pub enum FrenchRank {
     King,
 }
 
+impl Rank for FrenchRank {}
+
 impl Display for FrenchRank {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Pip(0) => {write!(f, "A")},
+            Self::Pip(1) => {write!(f, "A")},
             Self::Pip(i) => write!(f, "{}", i),
             Self::Jack => {write!(f, "J")},
             Self::Queen => {write!(f, "Q")},
@@ -45,28 +47,26 @@ impl Display for FrenchRank {
     }
 }
 
-impl Rank for FrenchRank {}
-
 #[derive(Clone, Copy, Debug)]
-pub enum ItalianSuit {
-    Swords,
-    Cups,
-    Batons,
-    Coins
+pub enum ItalianCard {
+    Swords(ItalianRank),
+    Cups(ItalianRank),
+    Batons(ItalianRank),
+    Coins(ItalianRank),
 }
 
-impl Display for ItalianSuit {
+impl Display for ItalianCard {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Swords => {write!(f, "♠")},
-            Self::Cups => {write!(f, "♥")},
-            Self::Batons => {write!(f, "♣")},
-            Self::Coins => {write!(f, "♦")},
+            Self::Swords(r) => {write!(f, "{}♠", r)},
+            Self::Cups(r) => {write!(f, "{}♥", r)},
+            Self::Batons(r) => {write!(f, "{}♣", r)},
+            Self::Coins(r) => {write!(f, "{}♦", r)},
         }
     }
 }
 
-impl Suit for ItalianSuit {}
+impl Card for ItalianCard {}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum ItalianRank {
@@ -76,10 +76,12 @@ pub enum ItalianRank {
     King,
 }
 
+impl Rank for ItalianRank {}
+
 impl Display for ItalianRank {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Pip(0) => {write!(f, "A")},
+            Self::Pip(1) => {write!(f, "A")},
             Self::Pip(i) => write!(f, "{}", i),
             Self::Jack => {write!(f, "J")},
             Self::Knight => {write!(f, "k")},
@@ -88,7 +90,26 @@ impl Display for ItalianRank {
     }
 }
 
-impl Rank for ItalianRank {}
+#[derive(Clone, Debug)]
+pub enum TarocchiCard {
+    Swords(TarocchiRank),
+    Cups(TarocchiRank),
+    Batons(TarocchiRank),
+    Coins(TarocchiRank),
+}
+
+impl Card for TarocchiCard {}
+
+impl Display for TarocchiCard {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        match self {
+            Self::Swords(r) => {write!(f, "{}♠", r)},
+            Self::Cups(r) => {write!(f, "{}♥", r)},
+            Self::Batons(r) => {write!(f, "{}♣", r)},
+            Self::Coins(r) => {write!(f, "{}♦", r)},
+        }
+    }
+}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum TarocchiRank {
@@ -102,7 +123,7 @@ pub enum TarocchiRank {
 impl Display for TarocchiRank {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::Pip(0) => {write!(f, "A")},
+            Self::Pip(1) => {write!(f, "A")},
             Self::Pip(i) => write!(f, "{}", i),
             Self::Jack => {write!(f, "J")},
             Self::Knight => {write!(f, "k")},
@@ -115,22 +136,27 @@ impl Display for TarocchiRank {
 impl Rank for TarocchiRank {}
 
 #[derive(Clone, Copy, Debug)]
-pub enum TarotSuit {
-    Pip(u32),
-    Jack,
-    Knight,
-    Queen,
-    King,
+pub enum TarotCard {
+    Swords(TarocchiRank),
+    Cups(TarocchiRank),
+    Batons(TarocchiRank),
+    Coins(TarocchiRank),
     Trump(TarotTrumps)
 }
 
-impl Display for TarotSuit {
+impl Display for TarotCard {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        todo!();
+        match self {
+            TarotCard::Swords(r) => write!(f, "{}♠", r),
+            TarotCard::Cups(r) => write!(f, "{}♥", r),
+            TarotCard::Batons(r) => write!(f, "{}♣", r),
+            TarotCard::Coins(r) => write!(f, "{}♦", r),
+            TarotCard::Trump(r) => write!(f, "{}", r),
+        }
     }
 }
 
-impl Suit for TarotSuit {}
+impl Card for TarotCard {}
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
 pub enum TarotTrumps {
@@ -158,35 +184,52 @@ pub enum TarotTrumps {
     World,
 }
 
+impl Rank for TarotTrumps {}
+
 impl Display for TarotTrumps {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        todo!();
+        match self {
+            TarotTrumps::Fool => write!(f, "0"),
+            TarotTrumps::Magician => write!(f, "I"),
+            TarotTrumps::HighPriestess => write!(f, "II"),
+            TarotTrumps::Empress => write!(f, "III"),
+            TarotTrumps::Emperor => write!(f, "IV"),
+            TarotTrumps::Hierophant => write!(f, "V"),
+            TarotTrumps::Lovers => write!(f, "VI"),
+            TarotTrumps::Chariot => write!(f, "VII"),
+            TarotTrumps::Strength => write!(f, "VIII"),
+            TarotTrumps::Hermit => write!(f, "IX"),
+            TarotTrumps::WheelOfFortune => write!(f, "X"),
+            TarotTrumps::Justice => write!(f, "XI"),
+            TarotTrumps::HangedMan => write!(f, "XII"),
+            TarotTrumps::Death => write!(f, "XIII"),
+            TarotTrumps::Temperance => write!(f, "XIV"),
+            TarotTrumps::Devil => write!(f, "XV"),
+            TarotTrumps::Tower => write!(f, "XVI"),
+            TarotTrumps::Star => write!(f, "XVII"),
+            TarotTrumps::Moon => write!(f, "XVIII"),
+            TarotTrumps::Sun => write!(f, "XIX"),
+            TarotTrumps::Judgement => write!(f, "XX"),
+            TarotTrumps::World => write!(f, "XXI"),
+        }
     }
 }
 
-impl Rank for TarotTrumps {}
-
 #[derive(Clone, Debug)]
-pub struct SuitRankCard<S: Suit, R: Rank> {
-    suit: S,
-    rank: R,
+pub struct FlippableCard<C: Card> {
+    card: C,
     is_face_up: bool,
 }
 
-pub type FrenchCard = SuitRankCard<FrenchSuit, FrenchRank>;
-pub type ItalianCard = SuitRankCard<ItalianSuit, ItalianRank>;
-pub type TarocchiCard = SuitRankCard<ItalianSuit, TarocchiRank>;
-pub type TarotCard = SuitRankCard<TarotSuit, TarocchiRank>;
-
-impl<S: Suit, R: Rank> SuitRankCard<S, R> {
-    pub fn new(suit: S, rank: R) -> SuitRankCard<S, R> {
-        SuitRankCard { suit, rank, is_face_up: true }
+impl<C: Card> FlippableCard<C> {
+    pub fn new(card: C) -> FlippableCard<C> {
+        FlippableCard { card, is_face_up: true }
     }
 }
 
-impl<S: Suit, R: Rank> Card for SuitRankCard<S, R> {}
+impl<C: Card> Card for FlippableCard<C> {}
 
-impl<S: Suit, R: Rank> Flippable for SuitRankCard<S, R> {
+impl<C: Card> Flippable for FlippableCard<C> {
     fn flip(&mut self) {
         self.is_face_up = !self.is_face_up;
     }
@@ -200,8 +243,8 @@ impl<S: Suit, R: Rank> Flippable for SuitRankCard<S, R> {
     }
 }
 
-impl<S: Suit, R: Rank> Display for SuitRankCard<S, R> {
+impl<C: Card> Display for FlippableCard<C> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}{}", self.rank, self.suit)
+        write!(f, "{}", self.card)
     }
 }

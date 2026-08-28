@@ -1,5 +1,6 @@
 use crate::{
     prelude::*,
+    card::FlippableCard,
     deck::Deck,
     player::Player,
     tableau::{Tableau, TableauVariant},
@@ -7,11 +8,11 @@ use crate::{
 
 #[derive(Debug)]
 pub struct Klondike {
-    player: Player<FrenchCard>,
-    talon: Deck<FrenchCard>,
-    talon_discard: Deck<FrenchCard>,
-    tableau: Tableau<FrenchCard>,
-    foundation: Tableau<FrenchCard>,
+    player: Player<FlippableCard<FrenchCard>>,
+    talon: Deck<FlippableCard<FrenchCard>>,
+    talon_discard: Deck<FlippableCard<FrenchCard>>,
+    tableau: Tableau<FlippableCard<FrenchCard>>,
+    foundation: Tableau<FlippableCard<FrenchCard>>,
 }
 
 impl Klondike {
