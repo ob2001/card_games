@@ -2,27 +2,26 @@ use crate::{
     prelude::*,
     card::Card,
     deck::Deck,
-    hand::Hand,
 };
 
 #[derive(Debug)]
 pub struct Player<CardSet: Card> {
     name: String,
-    hand: Hand<CardSet>,
+    hand: Vec<CardSet>,
 }
 
 impl<CardSet: Card> Player<CardSet> {
     pub fn new(name: String) -> Self {
-        Player { name, hand: Hand::new_empty() }
+        Player { name, hand: vec!() }
     }
 
     pub fn draw_from(&mut self, deck: &mut Deck<CardSet>) {
         if let Ok(card) = deck.draw() {
-            self.hand.hand.push(card);
+            self.hand.push(card);
         } else {
             deck.replenish(None, false);
             deck.shuffle();
-            self.hand.hand.push(deck.draw().expect("Empty deck"));
+            self.hand.push(deck.draw().expect("Empty deck"));
         }
     }
 
