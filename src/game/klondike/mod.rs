@@ -1,14 +1,16 @@
+pub mod layout;
+
 use crate::{
     prelude::*,
-    card::FlippableCard,
-    deck::Deck,
-    player::Player,
-    tableau::{Tableau, TableauVariant},
+    cards::{
+        FlippableCard,
+        deck::Deck,
+        tableau::{Tableau, TableauVariant}
+    },
 };
 
 #[derive(Debug)]
 pub struct Klondike {
-    player: Player<FlippableCard<FrenchCard>>,
     talon: Deck<FlippableCard<FrenchCard>>,
     talon_discard: Deck<FlippableCard<FrenchCard>>,
     tableau: Tableau<FlippableCard<FrenchCard>>,
@@ -18,7 +20,6 @@ pub struct Klondike {
 impl Klondike {
     pub fn new_game_default() -> Self {
         Klondike { 
-            player: Player::new(String::from("Player1")),
             talon: Deck::new_standard_french_deck(),
             talon_discard: Deck::new_empty(),
             tableau: Tableau::new(Some(TableauVariant::Horizontal), Some(StackVariant::FanVertical), 7),

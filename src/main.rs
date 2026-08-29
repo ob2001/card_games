@@ -1,8 +1,10 @@
 fn main() {
-    use card_games::deck::Deck;
-
-    let mut deck = Deck::new_standard_french_deck();
-    println!("{}", deck);
-    deck.shuffle();
-    println!("{}", deck);
+    let mut i: usize = 0;
+    for _ in 0..30 {
+        println!("{}", i);
+        i = (i as isize - 1).rem_euclid(3) as usize;
+    }
+    println!("{}", usize::MAX);
+    println!("{}", isize::MAX);
+    println!("{}", isize::MAX as usize);
 }

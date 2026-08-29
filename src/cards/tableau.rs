@@ -1,7 +1,5 @@
-use crate::{
-    prelude::*,
-    card_stack::{CardStack, StackVariant}
-};
+use crate::prelude::*;
+use super::card_stack::{CardStack, StackVariant};
 
 
 #[derive(Clone, Copy, Debug)]

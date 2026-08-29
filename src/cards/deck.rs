@@ -1,6 +1,6 @@
 use crate::{
     prelude::*,
-    card::{FlippableCard, FrenchCard},
+    cards::{FlippableCard, french_card::FrenchCard},
 };
 
 #[derive(Clone, Debug)]
@@ -68,7 +68,10 @@ impl<C: Card + Flip> Deck<C> {
 
 impl Deck<FlippableCard<FrenchCard>> {
     pub fn new_standard_french_deck() -> Deck<FlippableCard<FrenchCard>> {
-        use crate::card::{FlippableCard, FrenchCard::*, FrenchRank::*};
+        use crate::cards::FlippableCard;
+        use FrenchCard::*;
+        use crate::cards::french_card::FrenchRank::*;
+
         let mut deck = vec![];
         for i in 1..11 {
             for card in [Spades(Pip(i)), Hearts(Pip(i)), Clubs(Pip(i)), Diamonds(Pip(i))] {

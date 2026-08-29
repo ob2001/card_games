@@ -1,13 +1,8 @@
-pub mod card;
-pub mod deck;
-pub mod player;
-pub mod card_stack;
-pub mod tableau;
-
+pub mod cards;
 pub mod game;
 pub mod ui;
 
-pub trait PlayTo<CardSet: card::Card> {
+pub trait PlayTo<CardSet: cards::Card> {
     fn play_to(&mut self, card: CardSet) -> Result<(), CardSet>;
 }
 
@@ -21,7 +16,14 @@ pub mod prelude {
     pub use std::fmt::{Debug, Display};
     pub use crate::{
         PlayTo, Flip,
-        card::{Card, FrenchCard, ItalianCard, TarocchiCard, TarotCard},
-        card_stack::StackVariant,
+        cards::{
+            Card,
+            french_card::FrenchCard,
+            italian_card::ItalianCard,
+            tarocchi_card::TarocchiCard,
+            tarot_card::TarotCard,
+            magic_card::MagicCard,
+            card_stack::StackVariant,
+        },
     };
 }
