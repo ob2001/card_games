@@ -245,6 +245,10 @@ impl<C: Card> Flippable for FlippableCard<C> {
 
 impl<C: Card> Display for FlippableCard<C> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}", self.card)
+        if self.is_face_up {
+            write!(f, "{}", self.card)
+        } else {
+            write!(f, "XX")
+        }
     }
 }
