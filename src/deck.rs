@@ -1,6 +1,6 @@
 use crate::{
     prelude::*,
-    card::{FlippableCard, FrenchCard}
+    card::{FlippableCard, FrenchCard},
 };
 
 #[derive(Clone, Debug)]
@@ -14,11 +14,13 @@ impl<CardSet: Card> Deck<CardSet> {
         Deck { deck: vec![], default_discard: None }
     }
 
-    pub fn draw(&mut self) -> Result<CardSet, &str> {
-        self.deck.pop().ok_or("")
+    pub fn draw(&mut self) -> Option<CardSet> {
+        self.deck.pop()
     }
 
+    /// Randomize the positions of `Card`s in the `Deck`
     pub fn shuffle(&mut self) {
+        // Fisher-Yates shuffling algorithm
         for i in (1..self.deck.len()).rev() {
             let j = rand::random_range(0..i + 1);
             self.deck.swap(i, j)
