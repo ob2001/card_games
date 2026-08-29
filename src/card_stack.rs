@@ -8,19 +8,19 @@ pub enum StackVariant {
 }
 
 #[derive(Clone, Debug)]
-pub struct Stack<CardSet: Card> {
+pub struct CardStack<CardSet: Card> {
     stack: Vec<CardSet>,
     lim: Option<usize>,
     variant: StackVariant,
 }
 
-impl<CardSet: Card> Stack<CardSet> {
+impl<CardSet: Card> CardStack<CardSet> {
     pub fn new(variant: Option<StackVariant>, lim: Option<usize>) -> Self {
-        Stack { variant: variant.unwrap_or(StackVariant::Flush), stack: vec![], lim }
+        CardStack { variant: variant.unwrap_or(StackVariant::Flush), stack: vec![], lim }
     }
 }
 
-impl<CardSet: Card> PlayableTo<CardSet> for Stack<CardSet> {
+impl<CardSet: Card> PlayTo<CardSet> for CardStack<CardSet> {
     fn play_to(&mut self, card: CardSet) -> Result<(), CardSet>
     {
         if self.lim.is_some() && self.stack.len() < self.lim.unwrap() {
