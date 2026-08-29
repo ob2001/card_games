@@ -1,6 +1,6 @@
 use crate::{
     prelude::*,
-    stack::{Stack, StackVariant}
+    card_stack::{CardStack, StackVariant}
 };
 
 
@@ -21,7 +21,7 @@ pub struct Tableau<CardSet: Card>{
 impl<CardSet: Card> Tableau<CardSet> {
     pub fn new(tableau_variant: Option<TableauVariant>, stack_variant: Option<StackVariant>, cols: usize) -> Self {
         Tableau { 
-            tableau: vec![Stack::new(stack_variant, None); cols],
+            tableau: vec![CardStack::new(stack_variant, None); cols],
             selected_stack: 0,
             variant: tableau_variant.unwrap_or(TableauVariant::Horizontal)
         }
@@ -52,7 +52,6 @@ impl<CardSet: Card> Tableau<CardSet> {
         if tmp {
             self.selected_stack += isize::MAX as usize;
         }
-
     }
 
     pub fn get_selected_stack(&self) -> usize {
@@ -61,7 +60,7 @@ impl<CardSet: Card> Tableau<CardSet> {
 }
 
 impl<CardSet: Card> std::ops::Index<usize> for Tableau<CardSet> {
-    type Output = Stack<CardSet>;
+    type Output = CardStack<CardSet>;
     fn index(&self, index: usize) -> &Self::Output {
         &self.tableau[index]
     }

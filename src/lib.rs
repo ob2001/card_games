@@ -1,7 +1,7 @@
 pub mod card;
 pub mod deck;
 pub mod player;
-pub mod stack;
+pub mod card_stack;
 pub mod tableau;
 
 pub mod game;
@@ -22,6 +22,6 @@ pub mod prelude {
     pub use crate::{
         PlayableTo, Flippable,
         card::{Card, FrenchCard, ItalianCard, TarocchiCard, TarotCard},
-        stack::StackVariant,
+        card_stack::StackVariant,
     };
 }
