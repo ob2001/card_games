@@ -13,7 +13,7 @@ pub enum TableauVariant {
 
 #[derive(Clone, Debug)]
 pub struct Tableau<CardSet: Card>{
-    tableau: Vec<Stack<CardSet>>,
+    tableau: Vec<CardStack<CardSet>>,
     selected_stack: usize,
     variant: TableauVariant,
 }
@@ -72,7 +72,7 @@ impl<CardSet: Card> std::ops::IndexMut<usize> for Tableau<CardSet> {
     }
 }
 
-impl<CardSet: Card> PlayableTo<CardSet> for Tableau<CardSet> {
+impl<CardSet: Card> PlayTo<CardSet> for Tableau<CardSet> {
     fn play_to(&mut self, card: CardSet) -> Result<(), CardSet> {
         self.tableau[self.selected_stack].play_to(card)
     }

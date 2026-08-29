@@ -7,11 +7,11 @@ pub mod tableau;
 pub mod game;
 pub mod ui;
 
-pub trait PlayableTo<CardSet: card::Card> {
+pub trait PlayTo<CardSet: card::Card> {
     fn play_to(&mut self, card: CardSet) -> Result<(), CardSet>;
 }
 
-pub trait Flippable {
+pub trait Flip {
     fn flip(&mut self);
     fn flip_face_up(&mut self);
     fn flip_face_down(&mut self);
@@ -20,7 +20,7 @@ pub trait Flippable {
 pub mod prelude {
     pub use std::fmt::{Debug, Display};
     pub use crate::{
-        PlayableTo, Flippable,
+        PlayTo, Flip,
         card::{Card, FrenchCard, ItalianCard, TarocchiCard, TarotCard},
         card_stack::StackVariant,
     };

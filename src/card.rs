@@ -229,7 +229,7 @@ impl<C: Card> FlippableCard<C> {
 
 impl<C: Card> Card for FlippableCard<C> {}
 
-impl<C: Card> Flippable for FlippableCard<C> {
+impl<C: Card> Flip for FlippableCard<C> {
     fn flip(&mut self) {
         self.is_face_up = !self.is_face_up;
     }

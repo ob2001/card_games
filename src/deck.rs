@@ -50,7 +50,7 @@ impl<CardSet: Card> Deck<CardSet> {
     }
 }
 
-impl<C: Card + Flippable> Deck<C> {
+impl<C: Card + Flip> Deck<C> {
     pub fn all_face_up(&mut self) {
         for c in self.deck.iter_mut() {
             c.flip_face_up();
