@@ -49,4 +49,32 @@ impl Canfield {
             self.tableau.play_to_stack(c, i).expect(&format!("Tableau stack {} should exist", i));
         }
     }
+
+    pub fn draw_talon(&mut self) -> Result<(), crate::cards::deck::DeckError> {
+        if self.talon.inner_deck().len() > 0 {
+            for _ in 0..3 {
+                self.talon.discard_default_flip()?;
+            }
+            Ok(())
+        } else {
+            self.talon.replenish_default()?;
+            if self.talon.inner_deck().len() > 0 {
+                self.talon.all_face_down();
+                self.talon.reverse();
+                self.draw_talon()
+            } else {
+                Ok(())
+            }
+        }
+    }
+}
+
+impl std::fmt::Debug for Canfield {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        write!(
+            f,
+            "{}\n\n{}\n\n{:?}\n{:?}",
+            self.talon, self.stock, self.tableau, self.foundation
+        )
+    }
 }

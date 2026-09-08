@@ -51,10 +51,18 @@ impl<CardSet: Card> Deck<CardSet> {
                     d.push(c);
                     Ok(())
                 } else {
-                    self.replenish_default()?;
-                    self.discard_default()
+                    Err(DeckError::DrawOnEmptyDeck)
                 }
             }
+        }
+    }
+
+    pub fn discard_to(&mut self, other: &mut Deck<CardSet>) -> Result<(), DeckError> {
+        if let Some(c) = self.draw() {
+            other.take_cards(&mut vec![c]);
+            Ok(())
+        } else {
+            Err(DeckError::DrawOnEmptyDeck)
         }
     }
 
@@ -90,6 +98,10 @@ impl<CardSet: Card> Deck<CardSet> {
         self.deck = other.deck.split_off(0);
     }
 
+    pub fn reverse(&mut self) {
+        self.deck.reverse();
+    }
+
     pub fn take_cards(&mut self, cards: &mut Vec<CardSet>) {
         self.deck.append(cards);
     }
@@ -108,6 +120,21 @@ impl<CardSet: Card> Deck<CardSet> {
 }
 
 impl<CardSet: Card> Deck<FlippableCard<CardSet>> {
+    pub fn discard_default_flip(&mut self) -> Result<(), DeckError> {
+        match &mut self.default_discard {
+            None => Err(DeckError::NoDefaultDiscard),
+            Some(d) => {
+                if let Some(mut c) = self.deck.pop() {
+                    c.flip_face_up();
+                    d.push(c);
+                    Ok(())
+                } else {
+                    Err(DeckError::DrawOnEmptyDeck)
+                }
+            }
+        }
+    }
+
     pub fn all_face_up(&mut self) {
         for c in self.deck.iter_mut() {
             c.flip_face_up();

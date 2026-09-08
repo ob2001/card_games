@@ -29,11 +29,7 @@ impl<CardSet: Card> CardStack<CardSet> {
         let ret = self.stack.drain(0..self.stack.len()).collect();
         ret
     }
-
-    pub(crate) fn set_stack_variant(&mut self, stack_variant: StackVariant) {
-        self.stack_variant = stack_variant;
-    }
-
+    
     pub fn stack_variant(&self) -> &StackVariant {
         &self.stack_variant
     }

@@ -22,14 +22,18 @@ impl Klondike {
     }
 
     pub fn init_game(&mut self) {
-        self.talon
-            .replenish_default()
-            .expect("Talon is initialized with default discard");
+        // Gather all cards from other regions into talon for shuffling and redistribution
+        self.talon.replenish_default().expect("Talon is initialized with default discard");
         self.talon.take_cards(&mut self.tableau.gather_all());
         self.talon.take_cards(&mut self.foundation.gather_all());
+
+        // Ensure all cards are face-down before shuffling
         self.talon.all_face_down();
+
+        // Shuffle talon (deck)
         self.talon.shuffle();
 
+        // Draw cards from talon and play to tableau stacks 
         for i in 0..self.tableau.num_stacks() {
             let mut face_up_card = self.talon.draw().unwrap();
             face_up_card.flip_face_up();
@@ -44,32 +48,50 @@ impl Klondike {
             }
         }
 
-        for _ in 0..3 {
-            self.talon.discard_default().expect("Talon should not be emptied in initial setup");
+        // Deal first 3 cards from talon
+        self.draw_talon().expect("Talon should not be emptied in initial setup");
+    }
+
+    pub fn draw_talon(&mut self) -> Result<(), crate::cards::deck::DeckError> {
+        if self.talon.inner_deck().len() > 0 {
+            for _ in 0..3 {
+                self.talon.discard_default_flip()?;
+            }
+            Ok(())
+        } else {
+            self.talon.replenish_default()?;
+            if self.talon.inner_deck().len() > 0 {
+                self.talon.all_face_down();
+                self.talon.reverse();
+                self.draw_talon()
+            } else {
+                Ok(())
+            }
         }
     }
 
     pub fn run_game(&mut self) -> std::io::Result<()> {
-        let foundation_rect = Rect::new(0, 1, 30, 1);
-        let tableau_rect = Rect::new(0, 10, 150, 10);
-        ratatui::run(|terminal| {
-            loop {
-                terminal.draw(|frame| {
-                    // frame.render_widget(ratatui::widgets::, Rect::new(0, 0, 10, 1));
-                    frame.render_widget(format!("{:?}", self.foundation), foundation_rect);
-                    frame.render_widget(format!("{:?}", self.tableau), tableau_rect);
-                })?;
-                if let Ok(e) = event::read() {
-                    match e {
-                        event::Event::Key(ke) => match (ke.kind, ke.code) {
-                            (KeyEventKind::Press, KeyCode::Esc) => break Ok(()),
-                            _ => {}
-                        },
-                        _ => {}
-                    }
-                }
-            }
-        })
+        todo!();
+        // let foundation_rect = Rect::new(0, 1, 30, 1);
+        // let tableau_rect = Rect::new(0, 10, 150, 10);
+        // ratatui::run(|terminal| {
+        //     loop {
+        //         terminal.draw(|frame| {
+        //             // frame.render_widget(ratatui::widgets::, Rect::new(0, 0, 10, 1));
+        //             frame.render_widget(format!("{:?}", self.foundation), foundation_rect);
+        //             frame.render_widget(format!("{:?}", self.tableau), tableau_rect);
+        //         })?;
+        //         if let Ok(e) = event::read() {
+        //             match e {
+        //                 event::Event::Key(ke) => match (ke.kind, ke.code) {
+        //                     (KeyEventKind::Press, KeyCode::Esc) => break Ok(()),
+        //                     _ => {}
+        //                 },
+        //                 _ => {}
+        //             }
+        //         }
+        //     }
+        // })
     }
 }
 
@@ -105,23 +127,5 @@ impl ratatui::widgets::Widget for FlippableCard<FrenchCard> {
             }
             _ => {}
         }
-    }
-}
-
-impl ratatui::widgets::Widget for crate::cards::card_stack::CardStack<FlippableCard<FrenchCard>> {
-    fn render(self, area: Rect, buf: &mut Buffer)
-    where
-        Self: Sized,
-    {
-        todo!();
-    }
-}
-
-impl ratatui::widgets::Widget for crate::cards::tableau::Tableau<FlippableCard<FrenchCard>> {
-    fn render(self, area: Rect, buf: &mut Buffer)
-    where
-        Self: Sized,
-    {
-        todo!()
     }
 }
