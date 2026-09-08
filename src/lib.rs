@@ -6,24 +6,25 @@ pub trait PlayTo<CardSet: cards::Card> {
     fn play_to(&mut self, card: CardSet) -> Result<(), CardSet>;
 }
 
-pub trait Flip {
-    fn flip(&mut self);
-    fn flip_face_up(&mut self);
-    fn flip_face_down(&mut self);
+pub mod lib_prelude {
+    pub use crate::{
+        PlayTo,
+        cards::{
+            Card, card_stack::StackVariant, five_crowns_card::FiveCrownsCard,
+            french_card::FrenchCard, italian_card::ItalianCard, magic_card::MagicCardEntry,
+            tarocchi_card::TarocchiCard, tarot_card::TarotCard,
+        },
+    };
+    pub use std::fmt::{Debug, Display};
 }
 
 pub mod prelude {
-    pub use std::fmt::{Debug, Display};
     pub use crate::{
-        PlayTo, Flip,
+        PlayTo,
         cards::{
-            Card,
-            french_card::FrenchCard,
-            italian_card::ItalianCard,
-            tarocchi_card::TarocchiCard,
+            Card, five_crowns_card::FiveCrownsCard, french_card::FrenchCard,
+            italian_card::ItalianCard, magic_card::MagicCardEntry, tarocchi_card::TarocchiCard,
             tarot_card::TarotCard,
-            magic_card::MagicCard,
-            card_stack::StackVariant,
         },
     };
 }

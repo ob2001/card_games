@@ -1,4 +1,4 @@
-use crate::prelude::*;
+use crate::lib_prelude::*;
 
 pub mod card_stack;
 pub mod deck;
@@ -8,7 +8,7 @@ pub trait Card: Debug + Display + Clone {}
 pub trait Rank: Debug + Clone + Copy + PartialEq + Eq + PartialOrd + Ord + Display {}
 
 pub mod french_card {
-    use super::{Card, Rank, Display};
+    use super::{Card, Display, Rank};
 
     #[derive(Clone, Copy, Debug)]
     pub enum FrenchCard {
@@ -16,6 +16,7 @@ pub mod french_card {
         Hearts(FrenchRank),
         Clubs(FrenchRank),
         Diamonds(FrenchRank),
+        Joker,
     }
 
     impl Card for FrenchCard {}
@@ -23,10 +24,21 @@ pub mod french_card {
     impl Display for FrenchCard {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
             match self {
-                Self::Spades(r) => {write!(f, "{}♠", r)},
-                Self::Hearts(r) => {write!(f, "{}♥", r)},
-                Self::Clubs(r) => {write!(f, "{}♣", r)},
-                Self::Diamonds(r) => {write!(f, "{}♦", r)},
+                Self::Spades(r) => {
+                    write!(f, "{}♠", r)
+                }
+                Self::Hearts(r) => {
+                    write!(f, "{}♥", r)
+                }
+                Self::Clubs(r) => {
+                    write!(f, "{}♣", r)
+                }
+                Self::Diamonds(r) => {
+                    write!(f, "{}♦", r)
+                }
+                Self::Joker => {
+                    write!(f, "Jk")
+                }
             }
         }
     }
@@ -44,18 +56,26 @@ pub mod french_card {
     impl Display for FrenchRank {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
             match self {
-                Self::Pip(1) => {write!(f, "A")},
+                Self::Pip(1) => {
+                    write!(f, "A")
+                }
                 Self::Pip(i) => write!(f, "{}", i),
-                Self::Jack => {write!(f, "J")},
-                Self::Queen => {write!(f, "Q")},
-                Self::King => {write!(f, "K")},
+                Self::Jack => {
+                    write!(f, "J")
+                }
+                Self::Queen => {
+                    write!(f, "Q")
+                }
+                Self::King => {
+                    write!(f, "K")
+                }
             }
         }
     }
 }
 
 pub mod italian_card {
-    use super::{Card, Rank, Display};
+    use super::{Card, Display, Rank};
 
     #[derive(Clone, Copy, Debug)]
     pub enum ItalianCard {
@@ -68,10 +88,18 @@ pub mod italian_card {
     impl Display for ItalianCard {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
             match self {
-                Self::Swords(r) => {write!(f, "{}♠", r)},
-                Self::Cups(r) => {write!(f, "{}♥", r)},
-                Self::Batons(r) => {write!(f, "{}♣", r)},
-                Self::Coins(r) => {write!(f, "{}♦", r)},
+                Self::Swords(r) => {
+                    write!(f, "{}♠", r)
+                }
+                Self::Cups(r) => {
+                    write!(f, "{}♥", r)
+                }
+                Self::Batons(r) => {
+                    write!(f, "{}♣", r)
+                }
+                Self::Coins(r) => {
+                    write!(f, "{}♦", r)
+                }
             }
         }
     }
@@ -91,18 +119,26 @@ pub mod italian_card {
     impl Display for ItalianRank {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
             match self {
-                Self::Pip(1) => {write!(f, "A")},
+                Self::Pip(1) => {
+                    write!(f, "A")
+                }
                 Self::Pip(i) => write!(f, "{}", i),
-                Self::Jack => {write!(f, "J")},
-                Self::Knight => {write!(f, "k")},
-                Self::King => {write!(f, "K")},
+                Self::Jack => {
+                    write!(f, "J")
+                }
+                Self::Knight => {
+                    write!(f, "k")
+                }
+                Self::King => {
+                    write!(f, "K")
+                }
             }
         }
     }
 }
 
 pub mod tarocchi_card {
-    use super::{Card, Rank, Display};
+    use super::{Card, Display, Rank};
 
     #[derive(Clone, Debug)]
     pub enum TarocchiCard {
@@ -117,10 +153,18 @@ pub mod tarocchi_card {
     impl Display for TarocchiCard {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
             match self {
-                Self::Swords(r) => {write!(f, "{}♠", r)},
-                Self::Cups(r) => {write!(f, "{}♥", r)},
-                Self::Batons(r) => {write!(f, "{}♣", r)},
-                Self::Coins(r) => {write!(f, "{}♦", r)},
+                Self::Swords(r) => {
+                    write!(f, "{}♠", r)
+                }
+                Self::Cups(r) => {
+                    write!(f, "{}♥", r)
+                }
+                Self::Batons(r) => {
+                    write!(f, "{}♣", r)
+                }
+                Self::Coins(r) => {
+                    write!(f, "{}♦", r)
+                }
             }
         }
     }
@@ -137,12 +181,22 @@ pub mod tarocchi_card {
     impl Display for TarocchiRank {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
             match self {
-                Self::Pip(1) => {write!(f, "A")},
+                Self::Pip(1) => {
+                    write!(f, "A")
+                }
                 Self::Pip(i) => write!(f, "{}", i),
-                Self::Jack => {write!(f, "J")},
-                Self::Knight => {write!(f, "k")},
-                Self::Queen => {write!(f, "Q")},
-                Self::King => {write!(f, "K")},
+                Self::Jack => {
+                    write!(f, "J")
+                }
+                Self::Knight => {
+                    write!(f, "k")
+                }
+                Self::Queen => {
+                    write!(f, "Q")
+                }
+                Self::King => {
+                    write!(f, "K")
+                }
             }
         }
     }
@@ -151,7 +205,7 @@ pub mod tarocchi_card {
 }
 
 pub mod tarot_card {
-    use super::{Card, Rank, Display, tarocchi_card::TarocchiRank};
+    use super::{Card, Display, Rank, tarocchi_card::TarocchiRank};
 
     #[derive(Clone, Copy, Debug)]
     pub enum TarotCard {
@@ -159,7 +213,7 @@ pub mod tarot_card {
         Cups(TarocchiRank),
         Batons(TarocchiRank),
         Coins(TarocchiRank),
-        Trump(TarotTrumps)
+        Trump(TarotTrumps),
     }
 
     impl Display for TarotCard {
@@ -234,53 +288,120 @@ pub mod tarot_card {
     }
 }
 
+pub mod five_crowns_card {
+    use super::{Card, Display, Rank};
+
+    #[derive(Clone, Debug)]
+    pub enum FiveCrownsCard {
+        Spades(FiveCrownsRank),
+        Hearts(FiveCrownsRank),
+        Clubs(FiveCrownsRank),
+        Diamonds(FiveCrownsRank),
+        Stars(FiveCrownsRank),
+        Joker,
+    }
+
+    impl Display for FiveCrownsCard {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            match self {
+                Self::Spades(r) => {
+                    write!(f, "{}♠", r)
+                }
+                Self::Hearts(r) => {
+                    write!(f, "{}♥", r)
+                }
+                Self::Clubs(r) => {
+                    write!(f, "{}♣", r)
+                }
+                Self::Diamonds(r) => {
+                    write!(f, "{}♦", r)
+                }
+                Self::Stars(r) => {
+                    write!(f, "{}★", r)
+                }
+                Self::Joker => {
+                    write!(f, "Jk")
+                }
+            }
+        }
+    }
+
+    impl Card for FiveCrownsCard {}
+
+    #[derive(Clone, Copy, Debug, PartialEq, PartialOrd, Eq, Ord)]
+    pub enum FiveCrownsRank {
+        Pip(u32),
+        Jack,
+        Queen,
+        King,
+    }
+
+    impl Display for FiveCrownsRank {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            match self {
+                Self::Pip(1) => {
+                    write!(f, "A")
+                }
+                Self::Pip(i) => write!(f, "{}", i),
+                Self::Jack => {
+                    write!(f, "J")
+                }
+                Self::Queen => {
+                    write!(f, "Q")
+                }
+                Self::King => {
+                    write!(f, "K")
+                }
+            }
+        }
+    }
+
+    impl Rank for FiveCrownsRank {}
+}
+
 pub mod magic_card;
 
 #[derive(Clone, Debug)]
-pub struct FlippableCard<C: Card> {
-    card: C,
-    is_face_up: bool,
-}
+pub struct FlippableCard<C: Card>(C, pub bool);
 
 impl<C: Card> FlippableCard<C> {
     pub fn new(card: C) -> FlippableCard<C> {
-        FlippableCard { card, is_face_up: true }
+        FlippableCard(card, true)
+    }
+
+    pub fn flip(&mut self) {
+        self.1 = !self.1;
+    }
+
+    pub fn flip_face_up(&mut self) {
+        self.1 = true;
+    }
+
+    pub fn flip_face_down(&mut self) {
+        self.1 = false;
+    }
+
+    pub fn into_inner(self) -> C {
+        self.0
+    }
+
+    pub fn into_inner_checked(self) -> Result<C, Self> {
+        if self.1 { Ok(self.0) } else { Err(self) }
+    }
+
+    pub fn peek_inner_checked(&self) -> Option<&C> {
+        if self.1 { Some(&self.0) } else { None }
     }
 }
 
 impl<C: Card> Card for FlippableCard<C> {}
 
-impl<C: Card> Flip for FlippableCard<C> {
-    fn flip(&mut self) {
-        self.is_face_up = !self.is_face_up;
-    }
-
-    fn flip_face_up(&mut self) {
-        self.is_face_up = true;
-    }
-
-    fn flip_face_down(&mut self) {
-        self.is_face_up = false;
-    }
-}
-
 impl<C: Card> Display for FlippableCard<C> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if self.is_face_up {
-            write!(f, "{}", self.card)
+        if self.1 {
+            write!(f, "{}", self.0)
         } else {
             write!(f, "XX")
         }
     }
 }
-
-// #[cfg(test)]
-// mod test {
-//     use super::*;
-//     use crate::prelude::*;
-
-//     #[test]
-//     fn it_works() {
-//         assert!(true);
-//     }
-// }

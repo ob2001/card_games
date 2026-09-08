@@ -1,10 +1,18 @@
+use card_games::{
+    // lib_prelude::*,
+    game::klondike::Klondike,
+};
+
 fn main() {
-    let mut i: usize = 0;
-    for _ in 0..30 {
-        println!("{}", i);
-        i = (i as isize - 1).rem_euclid(3) as usize;
-    }
-    println!("{}", usize::MAX);
-    println!("{}", isize::MAX);
-    println!("{}", isize::MAX as usize);
+    french_cards_functionality_test();
+}
+
+fn french_cards_functionality_test() {
+    let mut game = Klondike::new_game_default();
+    card_games::ui::highlight_print_string("Created Klondike Game");
+    println!("{:?}", game);
+    card_games::ui::highlight_print_string("Initialized Klondike Game");
+    let _ = game.init_game();
+    println!("{:?}", game);
+    let _ = game.run_game();
 }
