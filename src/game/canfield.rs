@@ -13,7 +13,7 @@ pub struct Canfield {
 impl Canfield {
     pub fn new_game_default() -> Self {
         Canfield {
-            talon: Deck::new_standard_french_deck(true),
+            talon: Deck::new_standard_french_deck(true, true),
             stock: Deck::new_empty(),
             tableau: Tableau::new(StackVariant::VerticalTtB, 4),
             foundation: Tableau::new(StackVariant::Flush, 4),

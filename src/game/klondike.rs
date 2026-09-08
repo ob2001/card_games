@@ -15,7 +15,7 @@ pub struct Klondike {
 impl Klondike {
     pub fn new_game_default() -> Self {
         Klondike {
-            talon: Deck::new_standard_french_deck(true),
+            talon: Deck::new_standard_french_deck(true, true),
             tableau: Tableau::new(StackVariant::VerticalTtB, 7),
             foundation: Tableau::new(StackVariant::Flush, 4),
         }

@@ -14,6 +14,7 @@ pub enum DeckError {
 pub struct Deck<CardSet: Card> {
     deck: Vec<CardSet>,
     default_discard: Option<Vec<CardSet>>,
+    display_discard: bool,
 }
 
 impl<CardSet: Card> Deck<CardSet> {
@@ -21,13 +22,15 @@ impl<CardSet: Card> Deck<CardSet> {
         Deck {
             deck: vec![],
             default_discard: None,
+            display_discard: false,
         }
     }
 
-    pub fn new_with_default_discard(discard: Vec<CardSet>) -> Self {
+    pub fn new_with_default_discard(discard: Vec<CardSet>, display_discard: bool) -> Self {
         Deck {
             deck: vec![],
             default_discard: Some(discard),
+            display_discard,
         }
     }
 
@@ -183,7 +186,7 @@ impl<CardSet: Card> std::iter::Iterator for Deck<CardSet> {
 }
 
 impl Deck<FlippableCard<FrenchCard>> {
-    pub fn new_standard_french_deck(default_discard: bool) -> Deck<FlippableCard<FrenchCard>> {
+    pub fn new_standard_french_deck(default_discard: bool, display_discard: bool) -> Deck<FlippableCard<FrenchCard>> {
         use crate::cards::FlippableCard;
         use crate::cards::french_card::FrenchRank::*;
         use FrenchCard::*;
@@ -215,11 +218,13 @@ impl Deck<FlippableCard<FrenchCard>> {
         Deck {
             deck,
             default_discard,
+            display_discard,
         }
     }
 
     pub fn new_joker_french_deck(
         default_discard: Option<Vec<FlippableCard<FrenchCard>>>,
+        display_discard: bool
     ) -> Deck<FlippableCard<FrenchCard>> {
         use crate::cards::FlippableCard;
         use crate::cards::french_card::FrenchRank::*;
@@ -249,15 +254,26 @@ impl Deck<FlippableCard<FrenchCard>> {
         Deck {
             deck,
             default_discard,
+            display_discard
         }
     }
 }
 
 impl<C: Card> Display for Deck<C> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for card in &self.deck {
-            write!(f, "{}, ", card)?;
+        for card in self.deck.iter().take(self.deck.len().saturating_sub(1)) {
+            write!(f, "{} ", card)?;
         }
+        if let Some(c) = self.deck.last() { write!(f, "{}", c)?; }
+
+        if self.display_discard && let Some(d) = &self.default_discard {
+            write!(f, "\n=> ")?;
+            for card in d.iter().take(d.len().saturating_sub(1)) {
+                write!(f, "{} ", card)?;
+            }
+            if let Some(c) = d.last() { write!(f, "{}", c)?; } else { write!(f, "")?; }
+        }
+
         Ok(())
     }
 }
