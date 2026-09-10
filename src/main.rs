@@ -1,18 +1,11 @@
-use card_games::{
-    // lib_prelude::*,
-    game::klondike::Klondike,
-};
+#[allow(unused)]
+use card_games::game::{klondike::KlondikeGame, canfield::Canfield};
 
 fn main() {
-    french_cards_functionality_test();
-}
-
-fn french_cards_functionality_test() {
-    let mut game = Klondike::new_game_default();
-    card_games::ui::highlight_print_string("Created Klondike Game");
+    unsafe { std::env::set_var("RUST_BACKTRACE", "1"); }
+    let mut game = KlondikeGame::new_game_default();
     println!("{:?}", game);
-    card_games::ui::highlight_print_string("Initialized Klondike Game");
-    let _ = game.init_game();
+    game.init_game();
     println!("{:?}", game);
     let _ = game.run_game();
 }

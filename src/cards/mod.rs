@@ -28,13 +28,13 @@ pub mod french_card {
                     write!(f, "{}♠", r)
                 }
                 Self::Hearts(r) => {
-                    write!(f, "{}♥", r)
+                    write!(f, "\x1b[91m{}♥\x1b[37m", r)
                 }
                 Self::Clubs(r) => {
-                    write!(f, "{}♣", r)
+                    write!(f, "\x1b[32m{}♣\x1b[37m", r)
                 }
                 Self::Diamonds(r) => {
-                    write!(f, "{}♦", r)
+                    write!(f, "\x1b[94m{}♦\x1b[37m", r)
                 }
                 Self::Joker => {
                     write!(f, "Jk")

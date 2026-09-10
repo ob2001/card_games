@@ -3,7 +3,7 @@ use crate::{
     lib_prelude::*,
 };
 
-#[derive(Debug)]
+#[derive(Clone, Debug)]
 pub enum DeckError {
     NoValidCard,
     DrawOnEmptyDeck,
@@ -15,6 +15,8 @@ pub struct Deck<CardSet: Card> {
     deck: Vec<CardSet>,
     default_discard: Option<Vec<CardSet>>,
     display_discard: bool,
+    top_deck_selected: bool,
+    top_discard_selected: bool,
 }
 
 impl<CardSet: Card> Deck<CardSet> {
@@ -23,15 +25,16 @@ impl<CardSet: Card> Deck<CardSet> {
             deck: vec![],
             default_discard: None,
             display_discard: false,
+            top_deck_selected: true,
+            top_discard_selected: false,
         }
     }
 
     pub fn new_with_default_discard(discard: Vec<CardSet>, display_discard: bool) -> Self {
-        Deck {
-            deck: vec![],
-            default_discard: Some(discard),
-            display_discard,
-        }
+        let mut ret = Self::new_empty();
+        ret.default_discard = Some(discard);
+        ret.display_discard = display_discard;
+        ret
     }
 
     pub fn draw(&mut self) -> Option<CardSet> {
@@ -119,6 +122,28 @@ impl<CardSet: Card> Deck<CardSet> {
 
     pub fn inner_deck_mut(&mut self) -> &mut Vec<CardSet> {
         &mut self.deck
+    }
+
+    pub fn is_top_deck_selected(&self) -> bool {
+        self.top_deck_selected
+    }
+
+    pub fn is_top_discard_selected(&self) -> bool {
+        self.top_discard_selected
+    }
+
+    pub fn toggle_select_deck_discard(&mut self) {
+        self.top_deck_selected = !self.top_deck_selected;
+        self.top_discard_selected = !self.top_deck_selected;
+    }
+
+    pub fn deselect_top(&mut self) {
+        self.top_deck_selected = false;
+        self.top_discard_selected = false;
+    }
+
+    pub fn select_top(&mut self) {
+        self.top_deck_selected = true;
     }
 }
 
@@ -219,6 +244,8 @@ impl Deck<FlippableCard<FrenchCard>> {
             deck,
             default_discard,
             display_discard,
+            top_deck_selected: false,
+            top_discard_selected: false,
         }
     }
 
@@ -254,7 +281,9 @@ impl Deck<FlippableCard<FrenchCard>> {
         Deck {
             deck,
             default_discard,
-            display_discard
+            display_discard,
+            top_deck_selected: false,
+            top_discard_selected: false,
         }
     }
 }
@@ -264,14 +293,26 @@ impl<C: Card> Display for Deck<C> {
         for card in self.deck.iter().take(self.deck.len().saturating_sub(1)) {
             write!(f, "{} ", card)?;
         }
-        if let Some(c) = self.deck.last() { write!(f, "{}", c)?; }
+        if let Some(c) = self.deck.last() {
+            if self.top_deck_selected {
+                write!(f, "\x1b[100m{}\x1b[40m", c)?;
+            } else {
+                write!(f, "{}", c)?;
+            }
+        }
 
         if self.display_discard && let Some(d) = &self.default_discard {
             write!(f, "\n=> ")?;
             for card in d.iter().take(d.len().saturating_sub(1)) {
                 write!(f, "{} ", card)?;
             }
-            if let Some(c) = d.last() { write!(f, "{}", c)?; } else { write!(f, "")?; }
+            if let Some(c) = d.last() {
+                if self.top_discard_selected {
+                    write!(f, "\x1b[100m{}\x1b[40m", c)?;
+                } else {
+                    write!(f, "{}", c)?;
+                }
+            }
         }
 
         Ok(())

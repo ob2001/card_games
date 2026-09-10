@@ -67,6 +67,10 @@ impl Canfield {
             }
         }
     }
+
+    pub fn run_game(&mut self) {
+        todo!();
+    }
 }
 
 impl std::fmt::Debug for Canfield {

@@ -6,7 +6,10 @@ pub trait PlayTo<CardSet: cards::Card> {
     fn play_to(&mut self, card: CardSet) -> Result<(), CardSet>;
 }
 
-pub mod lib_prelude {
+#[allow(unused)]
+pub(crate) mod lib_prelude {
+    pub use std::fmt::{Debug, Display};
+    pub use crossterm::{execute, queue, cursor, event::{self, Event, KeyEvent, KeyEventKind, KeyCode}, style, terminal};
     pub use crate::{
         PlayTo,
         cards::{
@@ -15,7 +18,6 @@ pub mod lib_prelude {
             tarocchi_card::TarocchiCard, tarot_card::TarotCard,
         },
     };
-    pub use std::fmt::{Debug, Display};
 }
 
 pub mod prelude {

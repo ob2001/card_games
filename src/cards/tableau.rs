@@ -5,6 +5,7 @@ use crate::lib_prelude::*;
 pub struct Tableau<CardSet: Card> {
     stacks: Vec<CardStack<CardSet>>,
     selected_stack: usize,
+    active: bool,
 }
 
 impl<CardSet: Card> Tableau<CardSet> {
@@ -12,6 +13,7 @@ impl<CardSet: Card> Tableau<CardSet> {
         Tableau {
             stacks: vec![CardStack::new(stack_variant, None); cols],
             selected_stack: 0,
+            active: false,
         }
     }
 
@@ -74,6 +76,34 @@ impl<CardSet: Card> Tableau<CardSet> {
 
         ret
     }
+
+    pub fn activate(&mut self) {
+        self.active = true;
+        self.update_active_stack();
+    }
+
+    pub fn deactivate(&mut self) {
+        self.active = false;
+        self.stacks[self.selected_stack].deactivate();
+        if self.stacks[self.selected_stack].len() > 0 {
+            let l = self.stacks[self.selected_stack].len();
+            self.stacks[self.selected_stack].set_selected_card(l - 1).expect("Stack is guaranteed to contain a card");
+        }
+        self.selected_stack = 0;
+    }
+
+    pub fn activate_stack(&mut self) {
+        self.stacks[self.selected_stack].activate();
+    }
+
+    pub fn deactivate_stack(&mut self) {
+        self.stacks[self.selected_stack].deactivate();
+    }
+
+    pub fn update_active_stack(&mut self) {
+        for s in &mut self.stacks { s.deactivate(); }
+        self.stacks[self.selected_stack].activate();
+    }
 }
 
 impl<CardSet: Card> std::ops::Index<usize> for Tableau<CardSet> {
@@ -95,11 +125,21 @@ impl<CardSet: Card> PlayTo<CardSet> for Tableau<CardSet> {
     }
 }
 
-impl<CardSet: Card> std::fmt::Debug for Tableau<CardSet> {
+impl<CardSet: Card> Debug for Tableau<CardSet> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         for s in &self.stacks {
             write!(f, "||")?;
             writeln!(f, "{:?}", s)?;
+        }
+        Ok(())
+    }
+}
+
+impl<CardSet: Card> Display for Tableau<CardSet> {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for s in &self.stacks {
+            write!(f, "||")?;
+            writeln!(f, "{}", s)?;
         }
         Ok(())
     }
