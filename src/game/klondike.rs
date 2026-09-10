@@ -148,15 +148,15 @@ impl KlondikeGame {
                                         KlondikeGameElement::Talon => {
                                             self.talon.deselect_top();
                                             self.hovered_element.next();
-                                            self.tableau.activate();
+                                            self.tableau.hover();
                                         },
                                         KlondikeGameElement::Tableau => {
-                                            self.tableau.deactivate();
+                                            self.tableau.unhover();
                                             self.hovered_element.next();
-                                            self.foundation.activate();
+                                            self.foundation.hover();
                                         },
                                         KlondikeGameElement::Foundation => {
-                                            self.foundation.deactivate();
+                                            self.foundation.unhover();
                                             self.hovered_element.next();
                                             self.talon.select_top();
                                         },
@@ -169,12 +169,12 @@ impl KlondikeGame {
                                             self.talon.toggle_select_deck_discard();
                                         },
                                         KlondikeGameElement::Tableau => {
-                                            self.tableau.inc_selected_stack();
-                                            self.tableau.update_active_stack();
+                                            self.tableau.inc_hovered_stack();
+                                            self.tableau.update_hovered_stack();
                                         },
                                         KlondikeGameElement::Foundation => {
-                                            self.foundation.inc_selected_stack();
-                                            self.foundation.update_active_stack();
+                                            self.foundation.inc_hovered_stack();
+                                            self.foundation.update_hovered_stack();
                                         },
                                     }
                                     Ok(())
@@ -185,12 +185,12 @@ impl KlondikeGame {
                                             self.talon.toggle_select_deck_discard();
                                         },
                                         KlondikeGameElement::Tableau => {
-                                            self.tableau.dec_selected_stack();
-                                            self.tableau.update_active_stack();
+                                            self.tableau.dec_hovered_stack();
+                                            self.tableau.update_hovered_stack();
                                         },
                                         KlondikeGameElement::Foundation => {
-                                            self.foundation.dec_selected_stack();
-                                            self.foundation.update_active_stack();
+                                            self.foundation.dec_hovered_stack();
+                                            self.foundation.update_hovered_stack();
                                         },
                                     }
                                     Ok(())

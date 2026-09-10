@@ -4,16 +4,28 @@ use crate::lib_prelude::*;
 #[derive(Clone)]
 pub struct Tableau<CardSet: Card> {
     stacks: Vec<CardStack<CardSet>>,
-    selected_stack: usize,
-    active: bool,
+    variant: TableauVariant,
+    hovered_stack: Option<usize>,
+}
+
+#[derive(Clone, Debug)]
+pub enum TableauVariant {
+    HorizontalLtR,
+    HorizontalRtL,
+    VerticalTtB,
+    VerticalBtT,
+}
+
+pub enum TableauError {
+    InvalidStackSelection,
 }
 
 impl<CardSet: Card> Tableau<CardSet> {
     pub fn new(stack_variant: StackVariant, cols: usize) -> Self {
         Tableau {
             stacks: vec![CardStack::new(stack_variant, None); cols],
-            selected_stack: 0,
-            active: false,
+            variant: TableauVariant::HorizontalLtR,
+            hovered_stack: None,
         }
     }
 
@@ -21,38 +33,41 @@ impl<CardSet: Card> Tableau<CardSet> {
         self.stacks.len()
     }
 
-    pub fn set_selected_stack(&mut self, stack: usize) -> Result<(), &str> {
+    pub fn set_hovered_stack(&mut self, stack: usize) -> Result<(), TableauError> {
         if stack <= self.stacks.len() {
-            self.selected_stack = stack;
+            self.hovered_stack = Some(stack);
             Ok(())
         } else {
-            Err("Invalid stack selection")
+            Err(TableauError::InvalidStackSelection)
         }
     }
 
-    pub fn inc_selected_stack(&mut self) {
-        self.selected_stack = (self.selected_stack + 1) % self.stacks.len();
+    pub fn inc_hovered_stack(&mut self) {
+        if let Some(c) = self.hovered_stack {
+            self.hovered_stack = Some((c + 1) % self.stacks.len());
+        }
     }
 
-    pub fn dec_selected_stack(&mut self) {
+    pub fn dec_hovered_stack(&mut self) {
         let mut tmp = false;
-        if self.selected_stack > isize::MAX as usize {
-            self.selected_stack -= isize::MAX as usize;
+        if let Some(c) = self.hovered_stack && c > isize::MAX as usize {
+            self.hovered_stack = Some(c - isize::MAX as usize);
             tmp = true;
         }
 
-        self.selected_stack = self
-            .selected_stack
-            .checked_sub(1)
-            .unwrap_or(self.stacks.len().saturating_sub(1));
+        if self.hovered_stack != None {
+            self.hovered_stack = Some(self.hovered_stack.unwrap()
+                .checked_sub(1)
+                .unwrap_or(self.stacks.len().saturating_sub(1)));
+        }
 
         if tmp {
-            self.selected_stack += isize::MAX as usize;
+            self.hovered_stack = Some(self.hovered_stack.unwrap() + isize::MAX as usize);
         }
     }
 
-    pub fn selected_stack(&self) -> usize {
-        self.selected_stack
+    pub fn hovered_stack(&self) -> Option<usize> {
+        self.hovered_stack
     }
 
     pub fn stacks_mut(&mut self, range: std::ops::Range<usize>) -> &mut [CardStack<CardSet>] {
@@ -77,32 +92,33 @@ impl<CardSet: Card> Tableau<CardSet> {
         ret
     }
 
-    pub fn activate(&mut self) {
-        self.active = true;
-        self.update_active_stack();
+    pub fn hover(&mut self) {
+        self.hovered_stack = Some(0);
+        self.update_hovered_stack();
     }
 
-    pub fn deactivate(&mut self) {
-        self.active = false;
-        self.stacks[self.selected_stack].deactivate();
-        if self.stacks[self.selected_stack].len() > 0 {
-            let l = self.stacks[self.selected_stack].len();
-            self.stacks[self.selected_stack].set_selected_card(l - 1).expect("Stack is guaranteed to contain a card");
+    pub fn unhover(&mut self) {
+        self.unhover_stack();
+        self.hovered_stack = None;
+    }
+
+    pub fn hover_stack(&mut self) {
+        if let Some(c) = self.hovered_stack {
+            self.stacks[c].hover();
         }
-        self.selected_stack = 0;
     }
 
-    pub fn activate_stack(&mut self) {
-        self.stacks[self.selected_stack].activate();
+    pub fn unhover_stack(&mut self) {
+        if let Some(c) = self.hovered_stack {
+            self.stacks[c].unhover();
+        }
     }
 
-    pub fn deactivate_stack(&mut self) {
-        self.stacks[self.selected_stack].deactivate();
-    }
-
-    pub fn update_active_stack(&mut self) {
-        for s in &mut self.stacks { s.deactivate(); }
-        self.stacks[self.selected_stack].activate();
+    pub fn update_hovered_stack(&mut self) {
+        for s in &mut self.stacks { s.unhover(); }
+        if let Some(c) = self.hovered_stack {
+            self.stacks[c].hover();
+        }
     }
 }
 
@@ -121,7 +137,11 @@ impl<CardSet: Card> std::ops::IndexMut<usize> for Tableau<CardSet> {
 
 impl<CardSet: Card> PlayTo<CardSet> for Tableau<CardSet> {
     fn play_to(&mut self, card: CardSet) -> Result<(), CardSet> {
-        self.stacks[self.selected_stack].play_to(card)
+        if let Some(c) = self.hovered_stack {
+            self.stacks[c].play_to(card)
+        } else {
+            Err(card)
+        }
     }
 }
 

@@ -1,5 +1,5 @@
 use crate::{
-    cards::card_stack::StackError::InvalidStackSelection,
+    cards::card_stack::StackError::InvalidCardSelection,
     lib_prelude::*
 };
 
@@ -8,11 +8,10 @@ pub struct CardStack<CardSet: Card> {
     stack: Vec<CardSet>,
     stack_variant: StackVariant,
     lim: Option<usize>,
-    selected_card: usize,
-    active: bool,
+    hovered_card: Option<usize>,
 }
 
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub enum StackVariant {
     HorizontalLtR,
     HorizontalRtL,
@@ -23,7 +22,7 @@ pub enum StackVariant {
 
 #[derive(Clone, Debug)]
 pub enum StackError {
-    InvalidStackSelection
+    InvalidCardSelection,
 }
 
 impl<CardSet: Card> CardStack<CardSet> {
@@ -32,8 +31,7 @@ impl<CardSet: Card> CardStack<CardSet> {
             stack: vec![],
             stack_variant,
             lim,
-            selected_card: 0,
-            active: false,
+            hovered_card: None,
         }
     }
 
@@ -42,8 +40,7 @@ impl<CardSet: Card> CardStack<CardSet> {
             stack,
             stack_variant,
             lim,
-            selected_card: 0,
-            active: false,
+            hovered_card: None,
         }
     }
 
@@ -60,57 +57,78 @@ impl<CardSet: Card> CardStack<CardSet> {
         &self.stack_variant
     }
 
-    pub fn set_selected_card(&mut self, stack: usize) -> Result<(), StackError> {
+    pub fn set_hovered_card(&mut self, stack: usize) -> Result<(), StackError> {
         if stack <= self.stack.len() {
-            self.selected_card = stack;
+            self.hovered_card = Some(stack);
             Ok(())
         } else {
-            Err(InvalidStackSelection)
+            Err(InvalidCardSelection)
         }
     }
 
-    pub fn inc_selected_card(&mut self) {
-        self.selected_card = (self.selected_card + 1) % self.stack.len();
+    pub fn inc_hovered_card(&mut self) {
+        if let Some(c) = self.hovered_card {
+            self.hovered_card = Some((c + 1) % self.stack.len());
+        }
     }
 
-    pub fn dec_selected_card(&mut self) {
+    pub fn dec_hovered_card(&mut self) {
         let mut tmp = false;
 
-        if self.selected_card > isize::MAX as usize {
-            self.selected_card = self.selected_card - isize::MAX as usize;
+        if let Some(c) = self.hovered_card && c > isize::MAX as usize {
+            self.hovered_card = Some(c - isize::MAX as usize);
             tmp = true;
         }
+        
+        if self.hovered_card != None {
+            self.hovered_card = Some(self.hovered_card.unwrap()
+                .checked_sub(1)
+                .unwrap_or(self.stack.len().saturating_sub(1)));
+        }
 
-        self.selected_card = self.selected_card
-            .checked_sub(1)
-            .unwrap_or(self.stack.len().saturating_sub(1));
-
-        if tmp {
-            self.selected_card = self.selected_card + isize::MAX as usize;
+        if tmp && self.hovered_card != None {
+            self.hovered_card = Some(self.hovered_card.unwrap() + isize::MAX as usize);
         }
     }
 
-    pub fn get_selected_card(&self) -> usize {
-        self.selected_card
+    pub fn get_hovered_card_idx(&self) -> Option<usize> {
+        self.hovered_card
     }
 
-    pub fn take_selected_card(&mut self) -> CardSet {
-        self.stack.remove(self.selected_card)
-    }
-
-    pub fn take_selected_stack(&mut self) -> CardStack<CardSet> {
-        self.stack.split_off(self.selected_card).into()
-    }
-
-    pub fn activate(&mut self) {
-        self.active = true;
-        if self.stack.len() > 0 {
-            self.selected_card = self.stack.len() - 1;
+    pub fn take_hovered_card(&mut self) ->  Option<CardSet> {
+        if let Some(c) = self.hovered_card {
+            Some(self.stack.remove(c))
+        } else {
+            None
         }
     }
 
-    pub fn deactivate(&mut self) {
-        self.active = false;
+    pub fn take_hovered_stack(&mut self) -> Option<CardStack<CardSet>> {
+        if let Some(c) = self.hovered_card {
+            Some(self.stack.split_off(c).into())
+        } else {
+            None
+        }
+    }
+
+    pub fn hover(&mut self) {
+        self.hovered_card = Some(self.stack.len().saturating_sub(1));
+    }
+
+    pub fn unhover(&mut self) {
+        self.hovered_card = None;
+    }
+
+    pub fn set_lim(&mut self, lim: usize) {
+        self.lim = Some(lim);
+    }
+
+    pub fn unset_lim(&mut self) {
+        self.lim = None;
+    }
+
+    pub fn get_lim(&self) -> Option<usize> {
+        self.lim
     }
 }
 
@@ -127,11 +145,15 @@ impl<CardSet: Card> PlayTo<CardSet> for CardStack<CardSet> {
 
 impl<CardSet: Card> Debug for CardStack<CardSet> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for (i, c) in self.stack.iter().enumerate() {
-            if self.active && self.selected_card == i {
-                write!(f, "\x1b[100m{}\x1b[40m ", c)?;
-            } else {
-                write!(f, "{} ", c)?;
+        if self.stack.len() == 0 && self.hovered_card != None {
+            write!(f, "\x1b[100m  \x1b[40m")?;
+        } else {
+            for (i, c) in self.stack.iter().enumerate() {
+                if let Some(sel_c) = self.hovered_card && sel_c == i {
+                    write!(f, "\x1b[100m{}\x1b[40m ", c)?;
+                } else {
+                    write!(f, "{} ", c)?;
+                }
             }
         }
         Ok(())
@@ -140,11 +162,11 @@ impl<CardSet: Card> Debug for CardStack<CardSet> {
 
 impl<CardSet: Card> Display for CardStack<CardSet> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if self.stack.len() == 0 && self.active {
+        if self.stack.len() == 0 && self.hovered_card != None {
             write!(f, "\x1b[100m  \x1b[40m")?;
         } else {
             for (i, c) in self.stack.iter().enumerate() {
-                if self.active && self.selected_card == i {
+                if let Some(sel_c) = self.hovered_card && sel_c == i {
                     write!(f, "\x1b[100m{}\x1b[40m ", c)?;
                 } else {
                     write!(f, "{} ", c)?;
@@ -161,8 +183,13 @@ impl<CardSet: Card> From<Vec<CardSet>> for CardStack<CardSet> {
             stack: value,
             stack_variant: StackVariant::Flush,
             lim: None,
-            selected_card: 0,
-            active: false,
+            hovered_card: None,
         }
+    }
+}
+
+impl<CardSet: Card> Into<Vec<CardSet>> for CardStack<CardSet> {
+    fn into(self) -> Vec<CardSet> {
+        self.stack
     }
 }
