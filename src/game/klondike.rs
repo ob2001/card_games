@@ -2,11 +2,8 @@ use std::io::Write;
 
 use crate::{
     cards::{
-        FlippableCard,
-        deck::{Deck, DeckError},
-        tableau::Tableau,
-    },
-    lib_prelude::*,
+        FlippableCard, card_stack::CardStackError, deck::{Deck, DeckError, DeckToggle}, tableau::{Tableau, TableauError}
+    }, lib_prelude::*,
 };
 
 type KlondikeCard = FlippableCard<FrenchCard>;
@@ -18,6 +15,9 @@ type KlondikeFoundation = Tableau<KlondikeCard>;
 pub enum KlondikeGameError {
     CardError(KlondikeCard),
     DeckError(DeckError),
+    TableauError(TableauError),
+    CardStackError(CardStackError),
+    PlayError,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -28,7 +28,7 @@ pub enum KlondikeGameElement {
 }
 
 impl KlondikeGameElement {
-    // Allow cycling through Klondike Game elements in a specified order
+    /// Cycles through Klondike Game elements in a specified order
     pub fn next(&mut self) {
         *self = match self {
             KlondikeGameElement::Talon => KlondikeGameElement::Tableau,
@@ -43,21 +43,22 @@ pub struct KlondikeGame {
     tableau: KlondikeTableau,
     foundation: KlondikeFoundation,
     hovered_element: KlondikeGameElement,
-    curr_selection: Vec<KlondikeCard>,
+    selected_cards: (Vec<KlondikeCard>, KlondikeGameElement, Option<usize>),
 }
 
 impl KlondikeGame {
-    pub fn new_game_default() -> Self {
+    pub fn new() -> Self {
         KlondikeGame {
             talon: KlondikeDeck::new_standard_french_deck(true, true),
             tableau: KlondikeTableau::new(StackVariant::HorizontalLtR, 7),
             foundation: KlondikeFoundation::new(StackVariant::Flush, 4),
             hovered_element: KlondikeGameElement::Talon,
-            curr_selection: vec![],
+            selected_cards: (vec![], KlondikeGameElement::Talon, None),
         }
     }
 
-    pub fn init_game(&mut self) {
+    // 
+    pub fn init(&mut self) {
         // Gather all cards from other regions into talon for shuffling and redistribution
         self.talon.replenish_default().expect("Talon is initialized with default discard");
         self.talon.take_cards(&mut self.tableau.gather_all());
@@ -73,7 +74,7 @@ impl KlondikeGame {
         for i in 0..self.tableau.num_stacks() {
             let mut face_up_card = self.talon.draw().unwrap();
             face_up_card.flip_face_up();
-            self.tableau.play_to_stack(face_up_card, i).expect("Talon should not be emptied in initial setup");
+            self.tableau.play_card_to_stack(face_up_card, i).expect("Talon should not be emptied in initial setup");
 
             for s in self.tableau.stacks_mut((i + 1)..7) {
                 s.play_to(
@@ -89,9 +90,12 @@ impl KlondikeGame {
 
         // Start game with talon selected
         self.hovered_element = KlondikeGameElement::Talon;
-        self.talon.select_top();
+        self.talon.hover_deck();
+
+        self.selected_cards = (vec![], KlondikeGameElement::Talon, None);
     }
 
+    // Draw 3 cards from talon into talon discard
     pub fn draw_talon(&mut self) -> Result<(), KlondikeGameError> {
         if self.talon.inner_deck().len() > 0 {
             for _ in 0..3 {
@@ -111,7 +115,10 @@ impl KlondikeGame {
     }
 
     pub fn run_game(&mut self) -> Result<(), std::io::Error> {
+        // Get handle to stdout
         let mut stdout = std::io::stdout();
+
+        // Setup game environment in terminal
         execute!(stdout,
             terminal::EnterAlternateScreen,
             terminal::Clear(terminal::ClearType::All),
@@ -120,95 +127,57 @@ impl KlondikeGame {
             style::Print(format!("{}", self)),
         )?;
 
+        // Enter interactive loop
         loop {
+            // Print current game state
             print!("{}", self);
 
+            // Check for any terminal events, capture any error
             if let Err(err) = match event::read() {
                 Ok(ev) => {
                     match ev {
+                        // Match on key events
                         Event::Key(ke) => {
                             match (ke.kind, ke.code) {
+                                // Exit interactive loop
                                 (KeyEventKind::Press, KeyCode::Esc) => break,
-                                (KeyEventKind::Press, KeyCode::Enter) => {
-                                    match self.hovered_element {
-                                        KlondikeGameElement::Foundation => Ok(()),
-                                        KlondikeGameElement::Tableau => Ok(()),
-                                        KlondikeGameElement::Talon => {
-                                            if self.talon.is_top_deck_selected() {
-                                                self.draw_talon()
-                                            } else {
-                                                // TODO Select top card of talon "discard" to play
-                                                Ok(())
-                                            }
-                                        },
-                                    }
-                                },
-                                (KeyEventKind::Press, KeyCode::Tab) => {
-                                    match self.hovered_element {
-                                        KlondikeGameElement::Talon => {
-                                            self.talon.deselect_top();
-                                            self.hovered_element.next();
-                                            self.tableau.hover();
-                                        },
-                                        KlondikeGameElement::Tableau => {
-                                            self.tableau.unhover();
-                                            self.hovered_element.next();
-                                            self.foundation.hover();
-                                        },
-                                        KlondikeGameElement::Foundation => {
-                                            self.foundation.unhover();
-                                            self.hovered_element.next();
-                                            self.talon.select_top();
-                                        },
-                                    }
-                                    Ok(())
-                                },
-                                (KeyEventKind::Press, KeyCode::Down) => {
-                                    match self.hovered_element {
-                                        KlondikeGameElement::Talon => {
-                                            self.talon.toggle_select_deck_discard();
-                                        },
-                                        KlondikeGameElement::Tableau => {
-                                            self.tableau.inc_hovered_stack();
-                                            self.tableau.update_hovered_stack();
-                                        },
-                                        KlondikeGameElement::Foundation => {
-                                            self.foundation.inc_hovered_stack();
-                                            self.foundation.update_hovered_stack();
-                                        },
-                                    }
-                                    Ok(())
-                                },
-                                (KeyEventKind::Press, KeyCode::Up) => {
-                                    match self.hovered_element {
-                                        KlondikeGameElement::Talon => {
-                                            self.talon.toggle_select_deck_discard();
-                                        },
-                                        KlondikeGameElement::Tableau => {
-                                            self.tableau.dec_hovered_stack();
-                                            self.tableau.update_hovered_stack();
-                                        },
-                                        KlondikeGameElement::Foundation => {
-                                            self.foundation.dec_hovered_stack();
-                                            self.foundation.update_hovered_stack();
-                                        },
-                                    }
-                                    Ok(())
-                                },
+
+                                // Perform selection action
+                                (KeyEventKind::Press, KeyCode::Enter) => self.perform_selection(),
+
+                                // Cycle selected game element
+                                (KeyEventKind::Press, KeyCode::Tab) => self.cycle_selected_game_element(),
+
+                                // Navigate within selected game element
+                                (KeyEventKind::Press, KeyCode::Down) => self.navigate_game_element_down(),
+                                (KeyEventKind::Press, KeyCode::Up) => self.navigate_game_element_up(),
+
+                                // Navigate within hovered game sub-element
                                 (KeyEventKind::Press, KeyCode::Left) => {
-                                    match self.hovered_element {
-                                        KlondikeGameElement::Tableau => {},
-                                        _ => {},
+                                    if self.hovered_element == KlondikeGameElement::Tableau {
+                                        if let Some(curr_stack) = self.tableau.get_hovered_stack_mut() {
+                                            if let Some(c) = curr_stack.peek_prev_card() && c.1 {
+                                                curr_stack.dec_hovered_card();
+                                            }
+                                        }
                                     }
                                     Ok(())
                                 },
                                 (KeyEventKind::Press, KeyCode::Right) => {
-                                    match self.hovered_element {
-                                        KlondikeGameElement::Tableau => {},
-                                        _ => {},
+                                    if self.hovered_element == KlondikeGameElement::Tableau {
+                                        if let Some(curr_stack) = self.tableau.get_hovered_stack_mut() {
+                                            if let Some(c) = curr_stack.peek_next_card() && c.1 {
+                                                curr_stack.inc_hovered_card();
+                                            }
+                                        }
                                     }
                                     Ok(())
                                 },
+                                (KeyEventKind::Press, KeyCode::Char('z')) => self.replace_selected_cards(),
+                                (KeyEventKind::Press, KeyCode::Char('n')) => {
+                                    self.init();
+                                    continue
+                                }
                                 _ => { Ok(()) },
                             }
                         },
@@ -217,6 +186,7 @@ impl KlondikeGame {
                 },
                 Err(_) => { Ok(()) }
             } {
+                // Act on any errors
                 match err {
                     KlondikeGameError::DeckError(DeckError::DrawOnEmptyDeck) => {},
                     KlondikeGameError::DeckError(DeckError::NoDefaultDiscard) => {},
@@ -227,15 +197,206 @@ impl KlondikeGame {
 
         };
 
+        // Clean up and restore terminal
         execute!(stdout, cursor::Show, terminal::LeaveAlternateScreen)
     }
 
-    fn check_card_selection(&self) -> bool {
-        todo!("Implement card selection rules");
+    fn perform_selection(&mut self) -> Result<(), KlondikeGameError> {
+        match self.hovered_element {
+            KlondikeGameElement::Talon => {
+                if self.talon.is_hovered().unwrap() == DeckToggle::Deck {
+                    if !self.selected_cards.0.is_empty() {
+                        self.replace_selected_cards().expect("Replacing a non-empty curr_selection should be infallible");
+                    }
+
+                    self.draw_talon()
+                } else if self.selected_cards.0.is_empty() {
+                    if let Some(c) = self.talon.get_top_discard() {
+                        self.selected_cards = (vec![c], KlondikeGameElement::Talon, None);
+                    }
+                    Ok(())
+                } else {
+                    self.replace_selected_cards()
+                }
+            },
+            KlondikeGameElement::Tableau => {
+                // Player is attempting to pick up a card/cards from the tableau
+                if self.selected_cards.0.is_empty() {
+                    if let Some(sel_stack) = self.tableau.get_hovered_stack_mut() {
+                        if let Some(take_stack) = sel_stack.take_hovered_stack() {
+                            self.selected_cards = (take_stack.into(), KlondikeGameElement::Tableau, self.tableau.hovered_stack());
+                        }
+                    }
+                    Ok(())
+                } 
+
+                // Player is attempting to place their picked-up card/cards onto the tableau
+                else if self.check_move() {
+                    // Play selected cards to currently hovered stack
+                    let _ = self.tableau
+                        .play_cards_to_hovered_stack(&mut self.selected_cards.0)
+                        .map_err(|_| KlondikeGameError::PlayError);
+                    
+                    // Flip any uncovered tableau card face-up
+                    for stack in self.tableau.stacks_mut(0..7) {
+                        if let Some(c) = stack.last_mut() {
+                            c.flip_face_up();
+                        }
+                    }
+
+                    // Fixes the case that the card selection gets stuck on a face-down card
+                    if let Some(c) = self.tableau.get_hovered_card() && !c.1 {
+                        self.tableau.get_hovered_stack_mut().unwrap().inc_hovered_card();
+                    }
+
+                    // Reset picked_up_cards
+                    (self.selected_cards.1, self.selected_cards.2) = (KlondikeGameElement::Tableau, None);
+                    Ok(())
+                } 
+                
+                // Player's attempted move failed; clean up
+                else {
+                    self.replace_selected_cards()
+                }
+            },
+            KlondikeGameElement::Foundation => {
+                if self.selected_cards.0.is_empty() {
+                    if let Some(sel_stack) = self.foundation.get_hovered_stack_mut() && sel_stack.len() > 0 {
+                        if let Some(c) = sel_stack.take_hovered_card() {
+                            self.selected_cards = (vec![c], KlondikeGameElement::Foundation, self.foundation.hovered_stack())
+                        }
+                    }
+                    Ok(())
+                } else if self.selected_cards.0.len() == 1 && self.check_move() {
+                    self.foundation.play_cards_to_hovered_stack(&mut self.selected_cards.0).map_err(|e| KlondikeGameError::TableauError(e))?;
+                    self.foundation.get_hovered_stack_mut().unwrap().inc_hovered_card();
+                    Ok(())
+                } else {
+                    self.replace_selected_cards()
+                }
+            },
+        }
     }
 
-    fn check_move(&mut self) -> Result<(), KlondikeGameError> {
-        todo!("Implement card movement/placement rules");
+    fn replace_selected_cards(&mut self) -> Result<(), KlondikeGameError> {
+        let (cs, elem, pos) = &mut self.selected_cards;
+        if cs.len() > 0 {
+            match elem {
+                KlondikeGameElement::Talon => {
+                    self.talon.play_cards_to_discard(cs).map_err(|e| KlondikeGameError::DeckError(e))?;
+                },
+                KlondikeGameElement::Tableau => {
+                    self.tableau.play_cards_to_stack(cs, pos.expect("A selection originating from the Tableau must have an associated index")).map_err(|e| KlondikeGameError::TableauError(e))?;
+                },
+                KlondikeGameElement::Foundation => {
+                    self.foundation.play_cards_to_stack(cs, pos.expect("A selection originating from the Foundation must have an associated index")).map_err(|e| KlondikeGameError::TableauError(e))?;
+                },
+            }
+
+            self.selected_cards = (vec![], KlondikeGameElement::Talon, None);
+        }
+        Ok(())
+    }
+
+    fn cycle_selected_game_element(&mut self) -> Result<(), KlondikeGameError> {
+        match self.hovered_element {
+            KlondikeGameElement::Talon => {
+                self.talon.unhover();
+                self.hovered_element.next();
+                self.tableau.hover();
+            },
+            KlondikeGameElement::Tableau => {
+                self.tableau.unhover();
+                self.hovered_element.next();
+                self.foundation.hover();
+                let hs = self.foundation.get_hovered_stack_mut().unwrap();
+                hs.set_hovered_card(hs.len().saturating_sub(1)).expect("");
+            },
+            KlondikeGameElement::Foundation => {
+                self.foundation.unhover();
+                self.hovered_element.next();
+                self.talon.hover_deck();
+            },
+        }
+        Ok(())
+    }
+
+    fn navigate_game_element_down(&mut self) -> Result<(), KlondikeGameError> {
+        match self.hovered_element {
+            KlondikeGameElement::Talon => {
+                self.talon.toggle_deck_hover();
+            },
+            KlondikeGameElement::Tableau => {
+                self.tableau.inc_hovered_stack();
+                self.tableau.update_hovered_stack();
+            },
+            KlondikeGameElement::Foundation => {
+                self.foundation.inc_hovered_stack();
+                self.foundation.update_hovered_stack();
+            },
+        }
+        Ok(())
+    }
+
+    fn navigate_game_element_up(&mut self) -> Result<(), KlondikeGameError> {
+        match self.hovered_element {
+            KlondikeGameElement::Talon => {
+                self.talon.toggle_deck_hover();
+            },
+            KlondikeGameElement::Tableau => {
+                self.tableau.dec_hovered_stack();
+                self.tableau.update_hovered_stack();
+            },
+            KlondikeGameElement::Foundation => {
+                self.foundation.dec_hovered_stack();
+                self.foundation.update_hovered_stack();
+            },
+        }
+        Ok(())
+    }
+
+    // Ensure a user-selected move is valid before performing the move
+    fn check_move(&mut self) -> bool {
+        use crate::cards::french_card::{FrenchCard::*, FrenchRank::*};
+        match self.hovered_element {
+            // Rules for playing to Tableau
+            // TODO - Fix crash on playing King to empty Tableau stack
+            KlondikeGameElement::Tableau => {
+                if let Some(c) = self.tableau.get_hovered_card() {
+                    match (self.selected_cards.0.first().unwrap().peek_inner(), c.peek_inner()) {
+                        (Spades(m) | Clubs(m), Hearts(n) | Diamonds(n)) => {
+                            match (m, n) {
+                                (&Pip(m), &Pip(n)) => m == (n - 1),
+                                (Pip(10), Jack) => true,
+                                (Jack, Queen) => true,
+                                (Queen, King) => true,
+                                _ => false,
+                            }
+                        },
+                        (Hearts(m) | Diamonds(m), Spades(n) | Clubs(n)) => {
+                            match (m, n) {
+                                (&Pip(m), &Pip(n)) => m == (n - 1),
+                                (Pip(10), Jack) => true,
+                                (Jack, Queen) => true,
+                                (Queen, King) => true,
+                                _ => false,
+                            }
+                        },
+                        _ => false,
+                    }
+                } else {
+                    match self.selected_cards.0.first().unwrap().peek_inner() {
+                        &Spades(r) | &Hearts(r) | &Clubs(r) | &Diamonds(r) => r == King,
+                        _ => false
+                    }
+                }
+            },
+
+            // Rules for playing to Foundation
+            // TODO - Implement rules for playing cards to Foundation
+            KlondikeGameElement::Foundation => { false },
+            _ => false,
+        }
     }
 }
 
@@ -248,18 +409,19 @@ impl Debug for KlondikeGame {
     }
 }
 
+// Display format for Klondike game
 impl Display for KlondikeGame {
     fn fmt(&self, _: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let mut stdout = std::io::stdout();
         let _ = queue!(stdout,
                 terminal::Clear(terminal::ClearType::All),
                 cursor::MoveTo(0, 0),
-                style::Print(format!("--------------------------------------------------------------------------\n                                Keybindings\n--------------------------------------------------------------------------\n <Tab> - Cycle game element selection [Talon > Tableau > Foundation]\n <Up>/<Down> - Toggle Talon draw/play or select Tablueau/Foundation column\n <Left>/<Right> - Select card in Tableau column\n <z> - Deselect current selection\n--------------------------------------------------------------------------\n")),
+                style::Print(format!("--------------------------------------------------------------------------\n                                Keybindings\n--------------------------------------------------------------------------\n <Tab> - Cycle game element selection [Talon > Tableau > Foundation]\n <Up>/<Down> - Toggle Talon draw/play or select Tablueau/Foundation column\n <Left>/<Right> - Select card in Tableau column\n <z> - Deselect current selection\n <n> - Start new game\n--------------------------------------------------------------------------\n")),
                 style::Print(format!("{}\n\n", self.talon)),
                 style::Print(format!("{}\n", self.tableau)),
                 style::Print(format!("{}\n", self.foundation)),
         );
-        for c in &self.curr_selection {
+        for c in &self.selected_cards.0 {
             let _ = queue!(stdout,
                 style::Print(format!("{}", c)),
             );

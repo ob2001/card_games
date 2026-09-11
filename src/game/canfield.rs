@@ -40,13 +40,13 @@ impl Canfield {
         // Draw one card from talon to be first foundation card
         let mut c = self.talon.draw().expect("Talon should not be emptied in initial setup");
         c.flip_face_up();
-        self.foundation.play_to_stack(c, 0).expect("Foundation stack 0 should exist");
+        self.foundation.play_card_to_stack(c, 0).expect("Foundation stack 0 should exist");
 
         // Play one card from talon to each tableau stack
         for i in 0..4 {
             let mut c = self.talon.draw().expect("Talon should not be emptied in initial setup");
             c.flip_face_up();
-            self.tableau.play_to_stack(c, i).expect(&format!("Tableau stack {} should exist", i));
+            self.tableau.play_card_to_stack(c, i).expect(&format!("Tableau stack {} should exist", i));
         }
     }
 

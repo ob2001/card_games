@@ -1,5 +1,5 @@
 use super::card_stack::CardStack;
-use crate::lib_prelude::*;
+use crate::{cards::card_stack, lib_prelude::*};
 
 #[derive(Clone)]
 pub struct Tableau<CardSet: Card> {
@@ -16,8 +16,11 @@ pub enum TableauVariant {
     VerticalBtT,
 }
 
+#[derive(Clone, Debug)]
 pub enum TableauError {
+    CardStackError(card_stack::CardStackError),
     InvalidStackSelection,
+    InvalidHoveredStack
 }
 
 impl<CardSet: Card> Tableau<CardSet> {
@@ -70,15 +73,40 @@ impl<CardSet: Card> Tableau<CardSet> {
         self.hovered_stack
     }
 
+    pub fn get_hovered_stack_mut(&mut self) -> Option<&mut CardStack<CardSet>> {
+        if let Some(c) = self.hovered_stack {
+            Some(&mut self.stacks[c])
+        } else {
+            None
+        }
+    }
+
     pub fn stacks_mut(&mut self, range: std::ops::Range<usize>) -> &mut [CardStack<CardSet>] {
         &mut self.stacks[range]
     }
 
-    pub fn play_to_stack(&mut self, card: CardSet, i: usize) -> Result<(), CardSet> {
+    pub fn play_card_to_stack(&mut self, card: CardSet, i: usize) -> Result<(), CardSet> {
         if i < self.stacks.len() {
             self.stacks[i].play_to(card)
         } else {
             Err(card)
+        }
+    }
+
+    pub fn play_cards_to_stack(&mut self, cards: &mut Vec<CardSet>, i: usize) -> Result<(), TableauError> {
+        if i < self.stacks.len() {
+            self.stacks[i].play_cards(cards).map_err(|e| TableauError::CardStackError(e))
+        } else {
+            Err(TableauError::InvalidStackSelection)
+        }
+    }
+
+
+    pub fn play_cards_to_hovered_stack(&mut self, cards: &mut Vec<CardSet>) -> Result<(), TableauError> {
+        if let Some(i) = self.hovered_stack && i < self.stacks.len() {
+            self.stacks[i].play_cards(cards).map_err(|e| TableauError::CardStackError(e))
+        } else {
+            Err(TableauError::InvalidHoveredStack)
         }
     }
 
@@ -103,14 +131,14 @@ impl<CardSet: Card> Tableau<CardSet> {
     }
 
     pub fn hover_stack(&mut self) {
-        if let Some(c) = self.hovered_stack {
-            self.stacks[c].hover();
+        if let Some(s) = self.hovered_stack {
+            self.stacks[s].hover();
         }
     }
 
     pub fn unhover_stack(&mut self) {
-        if let Some(c) = self.hovered_stack {
-            self.stacks[c].unhover();
+        if let Some(s) = self.hovered_stack {
+            self.stacks[s].unhover();
         }
     }
 
@@ -118,6 +146,22 @@ impl<CardSet: Card> Tableau<CardSet> {
         for s in &mut self.stacks { s.unhover(); }
         if let Some(c) = self.hovered_stack {
             self.stacks[c].hover();
+        }
+    }
+
+    pub fn get_hovered_card(&self) -> Option<&CardSet> {
+        if let Some(s) = self.hovered_stack {
+            self.stacks[s].get_hovered_card()
+        } else {
+            None
+        }
+    }
+
+    pub fn get_hovered_card_mut(&mut self) -> Option<&mut CardSet> {
+        if let Some(s) = self.hovered_stack {
+            self.stacks[s].get_hovered_card_mut()
+        } else {
+            None
         }
     }
 }

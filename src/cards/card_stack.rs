@@ -1,5 +1,5 @@
 use crate::{
-    cards::card_stack::StackError::InvalidCardSelection,
+    cards::card_stack::CardStackError::InvalidCardSelection,
     lib_prelude::*
 };
 
@@ -21,8 +21,9 @@ pub enum StackVariant {
 }
 
 #[derive(Clone, Debug)]
-pub enum StackError {
+pub enum CardStackError {
     InvalidCardSelection,
+    CardStackOverflow
 }
 
 impl<CardSet: Card> CardStack<CardSet> {
@@ -57,13 +58,17 @@ impl<CardSet: Card> CardStack<CardSet> {
         &self.stack_variant
     }
 
-    pub fn set_hovered_card(&mut self, stack: usize) -> Result<(), StackError> {
+    pub fn set_hovered_card(&mut self, stack: usize) -> Result<(), CardStackError> {
         if stack <= self.stack.len() {
             self.hovered_card = Some(stack);
             Ok(())
         } else {
             Err(InvalidCardSelection)
         }
+    }
+
+    pub fn last_mut(&mut self) -> Option<&mut CardSet> {
+        self.stack.last_mut()
     }
 
     pub fn inc_hovered_card(&mut self) {
@@ -93,6 +98,22 @@ impl<CardSet: Card> CardStack<CardSet> {
 
     pub fn get_hovered_card_idx(&self) -> Option<usize> {
         self.hovered_card
+    }
+
+    pub fn get_hovered_card(&self) -> Option<&CardSet> {
+        if let Some(c) = self.hovered_card {
+            Some(&self.stack[c])
+        } else {
+            None
+        }
+    }
+
+    pub fn get_hovered_card_mut(&mut self) -> Option<&mut CardSet> {
+        if let Some(c) = self.hovered_card {
+            Some(&mut self.stack[c])
+        } else {
+            None
+        }
     }
 
     pub fn take_hovered_card(&mut self) ->  Option<CardSet> {
@@ -130,6 +151,32 @@ impl<CardSet: Card> CardStack<CardSet> {
     pub fn get_lim(&self) -> Option<usize> {
         self.lim
     }
+
+    pub fn peek_prev_card(&self) -> Option<&CardSet> {
+        if let Some(c) = self.hovered_card && c > 0 {
+            Some(&self.stack[c - 1])
+        } else {
+            None
+        }
+    }
+
+    pub fn peek_next_card(&self) -> Option<&CardSet> {
+        if let Some(c) = self.hovered_card && c < self.stack.len() - 1 {
+            Some(&self.stack[c + 1])
+        } else {
+            None
+        }
+    }
+
+    /// Takes ownership of `cards` passed in
+    pub fn play_cards(&mut self, cards: &mut Vec<CardSet>) -> Result<(), CardStackError> {
+        if self.len() + cards.len() <= self.lim.unwrap_or(usize::MAX) {
+            self.stack.append(cards);
+            Ok(())
+        } else {
+            Err(CardStackError::CardStackOverflow)
+        }
+    }
 }
 
 impl<CardSet: Card> PlayTo<CardSet> for CardStack<CardSet> {
@@ -162,14 +209,31 @@ impl<CardSet: Card> Debug for CardStack<CardSet> {
 
 impl<CardSet: Card> Display for CardStack<CardSet> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if self.stack.len() == 0 && self.hovered_card != None {
-            write!(f, "\x1b[100m  \x1b[40m")?;
-        } else {
-            for (i, c) in self.stack.iter().enumerate() {
-                if let Some(sel_c) = self.hovered_card && sel_c == i {
-                    write!(f, "\x1b[100m{}\x1b[40m ", c)?;
+        match self.stack_variant {
+            StackVariant::Flush => {
+                if self.hovered_card == None {
+                    if self.stack.len() == 0 {
+                        write!(f, "  ")?;
+                    } else {
+                        write!(f, "{} ", self.stack.last().unwrap())?;
+                    }
+                } else if self.stack.len() == 0 {
+                    write!(f, "\x1b[100m  \x1b[40m")?;
                 } else {
-                    write!(f, "{} ", c)?;
+                    write!(f, "\x1b[100m{}\x1b[40m ", self.stack.last().unwrap())?;
+                }
+            }
+            _ => {
+                if self.stack.len() == 0 && self.hovered_card != None {
+                    write!(f, "\x1b[100m  \x1b[40m")?;
+                } else {
+                    for (i, c) in self.stack.iter().enumerate() {
+                        if let Some(sel_c) = self.hovered_card && sel_c == i {
+                            write!(f, "\x1b[100m{}\x1b[40m ", c)?;
+                        } else {
+                            write!(f, "{} ", c)?;
+                        }
+                    }
                 }
             }
         }

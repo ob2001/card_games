@@ -10,13 +10,29 @@ pub enum DeckError {
     NoDefaultDiscard,
 }
 
+#[derive(Copy, Clone, Debug, PartialEq, Eq)]
+pub enum DeckToggle {
+    Deck,
+    Discard,
+}
+
+impl DeckToggle {
+    pub fn toggle(&mut self) {
+        *self = match self {
+            Self::Deck => Self::Discard,
+            Self::Discard => Self::Deck,
+        }
+    }
+}
+
 #[derive(Clone, Debug)]
 pub struct Deck<CardSet: Card> {
     deck: Vec<CardSet>,
     default_discard: Option<Vec<CardSet>>,
     display_discard: bool,
-    top_deck_selected: bool,
-    top_discard_selected: bool,
+    hovered: Option<DeckToggle>,
+    // top_deck_hovered: bool,
+    // top_discard_hovered: bool,
 }
 
 impl<CardSet: Card> Deck<CardSet> {
@@ -25,8 +41,7 @@ impl<CardSet: Card> Deck<CardSet> {
             deck: vec![],
             default_discard: None,
             display_discard: false,
-            top_deck_selected: true,
-            top_discard_selected: false,
+            hovered: None,
         }
     }
 
@@ -124,26 +139,54 @@ impl<CardSet: Card> Deck<CardSet> {
         &mut self.deck
     }
 
-    pub fn is_top_deck_selected(&self) -> bool {
-        self.top_deck_selected
+    pub fn is_hovered(&self) -> Option<DeckToggle> {
+        self.hovered
     }
 
-    pub fn is_top_discard_selected(&self) -> bool {
-        self.top_discard_selected
+    pub fn toggle_deck_hover(&mut self) {
+        if let Some(h) = &mut self.hovered {
+            h.toggle()
+        }
     }
 
-    pub fn toggle_select_deck_discard(&mut self) {
-        self.top_deck_selected = !self.top_deck_selected;
-        self.top_discard_selected = !self.top_deck_selected;
+    pub fn hover_discard(&mut self) {
+        if self.default_discard.is_some() {
+            self.hovered = Some(DeckToggle::Discard);
+        }
+    }
+    
+    pub fn hover_deck(&mut self) {
+        self.hovered = Some(DeckToggle::Deck);
     }
 
-    pub fn deselect_top(&mut self) {
-        self.top_deck_selected = false;
-        self.top_discard_selected = false;
+    pub fn unhover(&mut self) {
+        self.hovered = None;
     }
 
-    pub fn select_top(&mut self) {
-        self.top_deck_selected = true;
+    pub fn get_top_discard(&mut self) -> Option<CardSet> {
+        if let Some(dc) = &mut self.default_discard {
+            dc.pop()
+        } else {
+            None
+        }
+    }
+
+    pub fn play_card_to_discard(&mut self, card: CardSet) -> Result<(), CardSet> {
+        if let Some(dc) = &mut self.default_discard {
+            dc.push(card);
+            Ok(())
+        } else {
+            Err(card)
+        }
+    }
+
+    pub fn play_cards_to_discard(&mut self, cards: &mut Vec<CardSet>) -> Result<(), DeckError> {
+        if let Some(dc) = &mut self.default_discard {
+            dc.append(cards);
+            Ok(())
+        } else {
+            Err(DeckError::NoDefaultDiscard)
+        }
     }
 }
 
@@ -244,8 +287,7 @@ impl Deck<FlippableCard<FrenchCard>> {
             deck,
             default_discard,
             display_discard,
-            top_deck_selected: false,
-            top_discard_selected: false,
+            hovered: None,
         }
     }
 
@@ -282,8 +324,7 @@ impl Deck<FlippableCard<FrenchCard>> {
             deck,
             default_discard,
             display_discard,
-            top_deck_selected: false,
-            top_discard_selected: false,
+            hovered: None,
         }
     }
 }
@@ -294,20 +335,20 @@ impl<C: Card> Display for Deck<C> {
             write!(f, "{} ", card)?;
         }
         if let Some(c) = self.deck.last() {
-            if self.top_deck_selected {
+            if self.hovered == Some(DeckToggle::Deck) {
                 write!(f, "\x1b[100m{}\x1b[40m", c)?;
             } else {
                 write!(f, "{}", c)?;
             }
         }
 
-        if self.display_discard && let Some(d) = &self.default_discard {
+        if self.display_discard && let Some(d_d) = &self.default_discard {
             write!(f, "\n=> ")?;
-            for card in d.iter().take(d.len().saturating_sub(1)) {
+            for card in d_d.iter().take(d_d.len().saturating_sub(1)) {
                 write!(f, "{} ", card)?;
             }
-            if let Some(c) = d.last() {
-                if self.top_discard_selected {
+            if let Some(c) = d_d.last() {
+                if self.hovered == Some(DeckToggle::Discard) {
                     write!(f, "\x1b[100m{}\x1b[40m", c)?;
                 } else {
                     write!(f, "{}", c)?;

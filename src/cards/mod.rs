@@ -43,12 +43,54 @@ pub mod french_card {
         }
     }
 
-    #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
+    #[derive(Clone, Copy, Debug, PartialEq, Eq)]
     pub enum FrenchRank {
         Pip(u32),
         Jack,
         Queen,
         King,
+    }
+
+    impl PartialOrd for FrenchRank {
+        fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
+            Some(self.cmp(other))
+        }
+    }
+
+    impl Ord for FrenchRank {
+        fn cmp(&self, other: &Self) -> std::cmp::Ordering {
+            match self {
+                Self::Pip(n) => {
+                    match other {
+                        Self::Pip(m) => {
+                            n.cmp(m)
+                        },
+                        _ => std::cmp::Ordering::Less
+                    }
+                },
+                Self::Jack => {
+                    match other {
+                        Self::Pip(_) => std::cmp::Ordering::Greater,
+                        Self::Jack => std::cmp::Ordering::Equal,
+                        _ => std::cmp::Ordering::Less,
+                    }
+                },
+                Self::Queen => {
+                    match other {
+                        Self::Pip(_) => std::cmp::Ordering::Greater,
+                        Self::Jack => std::cmp::Ordering::Greater,
+                        Self::Queen => std::cmp::Ordering::Equal,
+                        Self::King => std::cmp::Ordering::Less
+                    }
+                },
+                Self::King => {
+                    match other {
+                        Self::King => std::cmp::Ordering::Equal,
+                        _ => std::cmp::Ordering::Greater,
+                    }
+                },
+            }
+        }
     }
 
     impl Rank for FrenchRank {}
@@ -383,6 +425,10 @@ impl<C: Card> FlippableCard<C> {
 
     pub fn into_inner(self) -> C {
         self.0
+    }
+
+    pub fn peek_inner(&self) -> &C {
+        &self.0
     }
 
     pub fn into_inner_checked(self) -> Result<C, Self> {
