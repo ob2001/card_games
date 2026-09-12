@@ -88,6 +88,11 @@ impl KlondikeGame {
         // Deal first 3 cards from talon
         self.draw_talon().expect("Talon should not be emptied in initial setup");
 
+        // Deselect all elements 
+        self.talon.unhover();
+        self.tableau.unhover();
+        self.foundation.unhover();
+
         // Start game with talon selected
         self.hovered_element = KlondikeGameElement::Talon;
         self.talon.hover_deck();
