@@ -7,5 +7,5 @@ Klondike Checklist
 - [ ] Implement rules for card/stack placement
   - [x] Implement Tableau rules
   - [ ] Implement Foundation rules
-- [ ] Fix crash when playing King to empty Tableau stack
+- [x] Fix crash when playing King to empty Tableau stack
 - [ ] Prettify UI

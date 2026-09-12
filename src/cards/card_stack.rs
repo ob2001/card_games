@@ -102,7 +102,7 @@ impl<CardSet: Card> CardStack<CardSet> {
 
     pub fn get_hovered_card(&self) -> Option<&CardSet> {
         if let Some(c) = self.hovered_card {
-            Some(&self.stack[c])
+            self.stack.get(c)
         } else {
             None
         }

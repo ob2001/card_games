@@ -360,7 +360,6 @@ impl KlondikeGame {
         use crate::cards::french_card::{FrenchCard::*, FrenchRank::*};
         match self.hovered_element {
             // Rules for playing to Tableau
-            // TODO - Fix crash on playing King to empty Tableau stack
             KlondikeGameElement::Tableau => {
                 if let Some(c) = self.tableau.get_hovered_card() {
                     match (self.selected_cards.0.first().unwrap().peek_inner(), c.peek_inner()) {
@@ -385,8 +384,13 @@ impl KlondikeGame {
                         _ => false,
                     }
                 } else {
-                    match self.selected_cards.0.first().unwrap().peek_inner() {
-                        &Spades(r) | &Hearts(r) | &Clubs(r) | &Diamonds(r) => r == King,
+                    match self.selected_cards.0.first() {
+                        Some(fc) => {
+                            match fc.peek_inner() {
+                                &Spades(r) | &Hearts(r) | &Clubs(r) | &Diamonds(r) => r == King,
+                                _ => false,
+                            }
+                        },
                         _ => false
                     }
                 }
