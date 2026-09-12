@@ -4,8 +4,8 @@ Project for fun to create a library for building playable card games as well as 
 Currently the only 3rd party crates is use are crossterm (for terminal manipulation) and rand (to shuffle cards).
 
 Klondike Checklist
-- [ ] Implement rules for card/stack placement
+- [x] Implement rules for card/stack placement
   - [x] Implement Tableau rules
-  - [ ] Implement Foundation rules
+  - [x] Implement Foundation rules
 - [x] Fix crash when playing King to empty Tableau stack
 - [ ] Prettify UI
