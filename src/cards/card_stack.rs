@@ -67,6 +67,10 @@ impl<CardSet: Card> CardStack<CardSet> {
         }
     }
 
+    pub fn last(&self) -> Option<&CardSet> {
+        self.stack.last()
+    }
+
     pub fn last_mut(&mut self) -> Option<&mut CardSet> {
         self.stack.last_mut()
     }
