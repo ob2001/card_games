@@ -270,6 +270,14 @@ impl KlondikeGame {
                 } else if self.selected_cards.0.len() == 1 && self.check_move() {
                     self.foundation.play_cards_to_hovered_stack(&mut self.selected_cards.0).map_err(|e| KlondikeGameError::TableauError(e))?;
                     self.foundation.get_hovered_stack_mut().unwrap().inc_hovered_card();
+
+                    // Flip any uncovered tableau card face-up
+                    for stack in self.tableau.stacks_mut(0..7) {
+                        if let Some(c) = stack.last_mut() {
+                            c.flip_face_up();
+                        }
+                    }
+
                     Ok(())
                 } else {
                     self.replace_selected_cards()
@@ -358,49 +366,82 @@ impl KlondikeGame {
     // Ensure a user-selected move is valid before performing the move
     fn check_move(&mut self) -> bool {
         use crate::cards::french_card::{FrenchCard::*, FrenchRank::*};
-        match self.hovered_element {
-            // Rules for playing to Tableau
-            KlondikeGameElement::Tableau => {
-                if let Some(c) = self.tableau.get_hovered_card() {
-                    match (self.selected_cards.0.first().unwrap().peek_inner(), c.peek_inner()) {
-                        (Spades(m) | Clubs(m), Hearts(n) | Diamonds(n)) => {
-                            match (m, n) {
-                                (&Pip(m), &Pip(n)) => m == (n - 1),
-                                (Pip(10), Jack) => true,
-                                (Jack, Queen) => true,
-                                (Queen, King) => true,
-                                _ => false,
-                            }
-                        },
-                        (Hearts(m) | Diamonds(m), Spades(n) | Clubs(n)) => {
-                            match (m, n) {
-                                (&Pip(m), &Pip(n)) => m == (n - 1),
-                                (Pip(10), Jack) => true,
-                                (Jack, Queen) => true,
-                                (Queen, King) => true,
-                                _ => false,
-                            }
-                        },
-                        _ => false,
-                    }
-                } else {
-                    match self.selected_cards.0.first() {
-                        Some(fc) => {
-                            match fc.peek_inner() {
-                                &Spades(r) | &Hearts(r) | &Clubs(r) | &Diamonds(r) => r == King,
-                                _ => false,
-                            }
-                        },
-                        _ => false
-                    }
-                }
-            },
 
-            // Rules for playing to Foundation
-            // TODO - Implement rules for playing cards to Foundation
-            KlondikeGameElement::Foundation => { false },
-            _ => false,
+        if self.selected_cards.0.is_empty() {
+            false
+        } else {
+            match self.hovered_element {
+
+                // Rules for playing to Tableau
+                KlondikeGameElement::Tableau => {
+                    if let Some(c) = self.tableau.get_hovered_card() {
+                        match (self.selected_cards.0.first().unwrap().peek_inner(), c.peek_inner()) {
+                            (Spades(m) | Clubs(m), Hearts(n) | Diamonds(n)) => {
+                                match (m, n) {
+                                    (&Pip(m), &Pip(n)) => m == (n - 1),
+                                    (Pip(10), Jack) => true,
+                                    (Jack, Queen) => true,
+                                    (Queen, King) => true,
+                                    _ => false,
+                                }
+                            },
+                            (Hearts(m) | Diamonds(m), Spades(n) | Clubs(n)) => {
+                                match (m, n) {
+                                    (&Pip(m), &Pip(n)) => m == (n - 1),
+                                    (Pip(10), Jack) => true,
+                                    (Jack, Queen) => true,
+                                    (Queen, King) => true,
+                                    _ => false,
+                                }
+                            },
+                            _ => false,
+                        }
+                    } else {
+                        match self.selected_cards.0.first() {
+                            Some(fc) => {
+                                match fc.peek_inner() {
+                                    &Spades(r) | &Hearts(r) | &Clubs(r) | &Diamonds(r) => r == King,
+                                    _ => false,
+                                }
+                            },
+                            _ => false
+                        }
+                    }
+                },
+
+                // Rules for playing to Foundation
+                KlondikeGameElement::Foundation => {
+                    if self.selected_cards.0.len() != 1 {
+                        false
+                    } else {
+                        if let Some(c) = self.foundation.get_hovered_card() {
+                            match (self.selected_cards.0.get(0).unwrap().peek_inner(), c.peek_inner()) {
+                                (Spades(m), Spades(n)) | (Hearts(m), Hearts(n)) | (Clubs(m), Clubs(n)) | (Diamonds(m), Diamonds(n)) => {
+                                    match (m, n) {
+                                        (&Pip(m), &Pip(n)) => { m == n + 1 },
+                                        (Jack, Pip(10)) => true,
+                                        (Queen, Jack) => true,
+                                        (King, Queen) => true,
+                                        _ => false
+                                    }
+                                },
+                                _ => false,
+                            }
+                        } else { 
+                            match self.selected_cards.0.get(0).unwrap().peek_inner() {
+                                Spades(Pip(1)) | Hearts(Pip(1)) | Clubs(Pip(1)) | Diamonds(Pip(1)) => true,
+                                _ => false
+                            }
+                        }
+                    }
+                },
+                _ => false,
+            }
         }
+    }
+
+    fn check_win(&mut self) -> bool {
+        false
     }
 }
 
