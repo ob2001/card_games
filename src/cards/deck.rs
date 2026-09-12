@@ -331,6 +331,9 @@ impl Deck<FlippableCard<FrenchCard>> {
 
 impl<C: Card> Display for Deck<C> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        if self.deck.len() == 0 && let Some(DeckToggle::Deck) = self.hovered {
+            write!(f, "\x1b[100m  \x1b[40m")?;
+        }
         for card in self.deck.iter().take(self.deck.len().saturating_sub(1)) {
             write!(f, "{} ", card)?;
         }
