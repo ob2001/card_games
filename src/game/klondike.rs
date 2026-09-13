@@ -1,9 +1,9 @@
-use std::io::{Stdout, Write};
-
 use crate::{
     cards::{
         FlippableCard, card_stack::CardStackError, deck::{Deck, DeckError, DeckToggle}, tableau::{Tableau, TableauError}
-    }, lib_prelude::*,
+    }, 
+    lib_prelude::*,
+    ui::*,
 };
 
 type KlondikeCard = FlippableCard<FrenchCard>;
@@ -150,33 +150,12 @@ impl KlondikeGame {
         }
     }
 
-    fn enter_game_screen(&mut self, stdout: &mut Stdout) -> Result<(), std::io::Error> {
-        execute!(stdout,
-            terminal::EnterAlternateScreen,
-            cursor::Hide,
-        )
-    }
-
-    fn leave_game_screen(&mut self, stdout: &mut Stdout) -> Result<(), std::io::Error> {
-        execute!(stdout,
-            cursor::Show,
-            terminal::LeaveAlternateScreen
-        )
-    }
-
-    fn clear_screen(&mut self, stdout: &mut Stdout) -> Result<(), std::io::Error> {
-        execute!(stdout,
-            terminal::Clear(terminal::ClearType::All),
-            cursor::MoveTo(0, 0),
-        )
-    }
-
     pub fn run_game(&mut self) -> Result<(), std::io::Error> {
         let mut stdout = std::io::stdout();
 
         // Setup game environment in terminal, refresh screen and print initial game state
-        self.enter_game_screen(&mut stdout)?;
-        self.clear_screen(&mut stdout)?;
+        enter_game_screen(&mut stdout)?;
+        clear_screen(&mut stdout)?;
         print!("{}", self);
 
         // Enter interactive loop
@@ -185,7 +164,7 @@ impl KlondikeGame {
                 self.win_screen();
             } else {
                 // Refresh screen and print current game state
-                self.clear_screen(&mut stdout)?;
+                clear_screen(&mut stdout)?;
                 print!("{}", self);
 
                 // Check for any terminal events, capture any error
@@ -255,7 +234,7 @@ impl KlondikeGame {
         };
 
         // Clean up and restore terminal
-        self.leave_game_screen(&mut stdout)
+        leave_game_screen(&mut stdout)
     }
 
     fn perform_selection(&mut self) -> Result<(), KlondikeGameError> {
