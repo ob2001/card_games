@@ -165,7 +165,7 @@ impl<CardSet: Card> CardStack<CardSet> {
     }
 
     pub fn peek_next_card(&self) -> Option<&CardSet> {
-        if let Some(c) = self.hovered_card && c < self.stack.len() - 1 {
+        if let Some(c) = self.hovered_card && c < self.stack.len().saturating_sub(1) {
             Some(&self.stack[c + 1])
         } else {
             None
