@@ -23,8 +23,8 @@ impl Canfield {
     pub fn init_game(&mut self) {
         // Gather all cards from other regions into talon for shuffling and redistribution
         self.talon.replenish_default().expect("Talon is initialized with default discard");
-        self.talon.take_cards(&mut self.tableau.gather_all());
-        self.talon.take_cards(&mut self.foundation.gather_all());
+        self.talon.add_cards(&mut self.tableau.gather_all());
+        self.talon.add_cards(&mut self.foundation.gather_all());
         self.talon.replenish_from(&mut self.stock);
 
         // Ensure all cards are face-down before shuffling
@@ -34,7 +34,7 @@ impl Canfield {
         self.talon.shuffle();
 
         // Draw 13 cards from talon to become the new stock pile. Flip the top card face-up
-        self.stock.take_cards(&mut self.talon.draw_n(13).expect("Talon should not be emptied in initial setup"));
+        self.stock.add_cards(&mut self.talon.draw_n(13).expect("Talon should not be emptied in initial setup"));
         self.stock.top_face_up().expect("Stock should not be empty, it was just dealt 13 cards");
 
         // Draw one card from talon to be first foundation card
@@ -51,14 +51,14 @@ impl Canfield {
     }
 
     pub fn draw_talon(&mut self) -> Result<(), crate::cards::deck::DeckError> {
-        if self.talon.inner_deck().len() > 0 {
+        if self.talon.view_inner_deck().len() > 0 {
             for _ in 0..3 {
-                self.talon.discard_default_flip()?;
+                self.talon.top_deck_discard_default_flip()?;
             }
             Ok(())
         } else {
             self.talon.replenish_default()?;
-            if self.talon.inner_deck().len() > 0 {
+            if self.talon.view_inner_deck().len() > 0 {
                 self.talon.all_face_down();
                 self.talon.reverse();
                 self.draw_talon()

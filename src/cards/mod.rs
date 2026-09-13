@@ -4,9 +4,17 @@ pub mod card_stack;
 pub mod deck;
 pub mod tableau;
 
+/// Trait required to be implemented by any object to act as a Card throughout the library
 pub trait Card: Debug + Display + Clone {}
-pub trait Rank: Debug + Clone + Copy + PartialEq + Eq + PartialOrd + Ord + Display {}
+pub trait Rank: Debug + Clone + Copy + PartialEq + Eq + PartialOrd + Ord + Display {
+    /// Returns the next-highest rank if it exists
+    fn next(&self) -> Option<Self>;
 
+    /// Returns the next lowest rank if it exists
+    fn prev(&self) -> Option<Self>;
+}
+
+/// A module for French type cards
 pub mod french_card {
     use super::{Card, Display, Rank};
 
@@ -51,6 +59,28 @@ pub mod french_card {
         King,
     }
 
+    impl Rank for FrenchRank {
+        fn next(&self) -> Option<Self> {
+            match self {
+                Self::Pip(10) => Some(Self::Jack),
+                Self::Pip(n) => Some(Self::Pip(n + 1)),
+                Self::Jack => Some(Self::Queen),
+                Self::Queen => Some(Self::King),
+                Self::King => None,
+            }
+        }
+
+        fn prev(&self) -> Option<Self> {
+            match self {
+                Self::Pip(1) => None,
+                Self::Pip(n) => Some(Self::Pip(n - 1)),
+                Self::Jack => Some(Self::Pip(10)),
+                Self::Queen => Some(Self::Jack),
+                Self::King => Some(Self::Queen),
+            }
+        }
+    }
+
     impl PartialOrd for FrenchRank {
         fn partial_cmp(&self, other: &Self) -> Option<std::cmp::Ordering> {
             Some(self.cmp(other))
@@ -93,8 +123,6 @@ pub mod french_card {
         }
     }
 
-    impl Rank for FrenchRank {}
-
     impl Display for FrenchRank {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
             match self {
@@ -116,6 +144,7 @@ pub mod french_card {
     }
 }
 
+/// A module for Italian type cards
 pub mod italian_card {
     use super::{Card, Display, Rank};
 
@@ -156,7 +185,27 @@ pub mod italian_card {
         King,
     }
 
-    impl Rank for ItalianRank {}
+    impl Rank for ItalianRank {
+        fn next(&self) -> Option<Self> {
+            match self {
+                Self::Pip(10) => Some(Self::Jack),
+                Self::Pip(n) => Some(Self::Pip(n + 1)),
+                Self::Jack => Some(Self::Knight),
+                Self::Knight => Some(Self::King),
+                Self::King => None,
+            }
+        }
+
+        fn prev(&self) -> Option<Self> {
+            match self {
+                Self::Pip(1) => None,
+                Self::Pip(n) => Some(Self::Pip(n - 1)),
+                Self::Jack => Some(Self::Pip(10)),
+                Self::Knight => Some(Self::Jack),
+                Self::King => Some(Self::Knight),
+            }
+        }
+    }
 
     impl Display for ItalianRank {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -179,6 +228,7 @@ pub mod italian_card {
     }
 }
 
+/// A module for Tarocchi type cards (Italian plus the Queen rank)
 pub mod tarocchi_card {
     use super::{Card, Display, Rank};
 
@@ -243,9 +293,32 @@ pub mod tarocchi_card {
         }
     }
 
-    impl Rank for TarocchiRank {}
+    impl Rank for TarocchiRank {
+        fn next(&self) -> Option<Self> {
+            match self {
+                Self::Pip(10) => Some(Self::Jack),
+                Self::Pip(n) => Some(Self::Pip(n + 1)),
+                Self::Jack => Some(Self::Knight),
+                Self::Knight => Some(Self::Queen),
+                Self::Queen => Some(Self::King),
+                Self::King => None,
+            }
+        }
+
+        fn prev(&self) -> Option<Self> {
+            match self {
+                Self::Pip(1) => None,
+                Self::Pip(n) => Some(Self::Pip(n - 1)),
+                Self::Jack => Some(Self::Pip(10)),
+                Self::Knight => Some(Self::Jack),
+                Self::Queen => Some(Self::Knight),
+                Self::King => Some(Self::Queen),
+            }
+        }
+    }
 }
 
+/// A module forTarot type cards (Tarocchi plus 21 trump-suited cards)
 pub mod tarot_card {
     use super::{Card, Display, Rank, tarocchi_card::TarocchiRank};
 
@@ -298,7 +371,63 @@ pub mod tarot_card {
         World,
     }
 
-    impl Rank for TarotTrumps {}
+    impl Rank for TarotTrumps {
+        fn next(&self) -> Option<Self> {
+            use TarotTrumps::*;
+            match self {
+                Fool => Some(Magician),
+                Magician => Some(HighPriestess),
+                HighPriestess => Some(Empress),
+                Empress => Some(Emperor),
+                Emperor => Some(Hierophant),
+                Hierophant => Some(Lovers),
+                Lovers => Some(Chariot),
+                Chariot => Some(Strength),
+                Strength => Some(Hermit),
+                Hermit => Some(WheelOfFortune),
+                WheelOfFortune => Some(Justice),
+                Justice => Some(HangedMan),
+                HangedMan => Some(Death),
+                Death => Some(Temperance),
+                Temperance => Some(Devil),
+                Devil => Some(Tower),
+                Tower => Some(Star),
+                Star => Some(Moon),
+                Moon => Some(Sun),
+                Sun => Some(Judgement),
+                Judgement => Some(World),
+                World => None,
+            }
+        }
+
+        fn prev(&self) -> Option<Self> {
+            use TarotTrumps::*;
+            match self {
+                Fool => None,
+                Magician => Some(Fool),
+                HighPriestess => Some(Magician),
+                Empress => Some(HighPriestess),
+                Emperor => Some(Empress),
+                Hierophant => Some(Emperor),
+                Lovers => Some(Hierophant),
+                Chariot => Some(Lovers),
+                Strength => Some(Chariot),
+                Hermit => Some(Strength),
+                WheelOfFortune => Some(Hermit),
+                Justice => Some(WheelOfFortune),
+                HangedMan => Some(Justice),
+                Death => Some(HangedMan),
+                Temperance => Some(Death),
+                Devil => Some(Temperance),
+                Tower => Some(Devil),
+                Star => Some(Tower),
+                Moon => Some(Star),
+                Sun => Some(Moon),
+                Judgement => Some(Sun),
+                World => Some(Judgement),
+            }
+        }
+    }
 
     impl Display for TarotTrumps {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -330,16 +459,19 @@ pub mod tarot_card {
     }
 }
 
+/// A module for Five Crowns type cards
 pub mod five_crowns_card {
-    use super::{Card, Display, Rank};
+    use crate::cards::french_card::FrenchRank;
+
+    use super::{Card, Display};
 
     #[derive(Clone, Debug)]
     pub enum FiveCrownsCard {
-        Spades(FiveCrownsRank),
-        Hearts(FiveCrownsRank),
-        Clubs(FiveCrownsRank),
-        Diamonds(FiveCrownsRank),
-        Stars(FiveCrownsRank),
+        Spades(FrenchRank),
+        Hearts(FrenchRank),
+        Clubs(FrenchRank),
+        Diamonds(FrenchRank),
+        Stars(FrenchRank),
         Joker,
     }
 
@@ -350,59 +482,31 @@ pub mod five_crowns_card {
                     write!(f, "{}♠", r)
                 }
                 Self::Hearts(r) => {
-                    write!(f, "{}♥", r)
+                    write!(f, "\x1b[91m{}♥\x1b[37m", r)
                 }
                 Self::Clubs(r) => {
-                    write!(f, "{}♣", r)
+                    write!(f, "\x1b[92m{}♣\x1b[37m", r)
                 }
                 Self::Diamonds(r) => {
-                    write!(f, "{}♦", r)
+                    write!(f, "\x1b[36m{}♦\x1b[37m", r)
                 }
                 Self::Stars(r) => {
-                    write!(f, "{}★", r)
+                    write!(f, "\x1b[93m{}★\x1b[37m", r)
                 }
                 Self::Joker => {
-                    write!(f, "Jk")
+                    write!(f, "\x1b[91mJ\x1b[92mk\x1b[93mr\x1b[37m")
                 }
             }
         }
     }
 
     impl Card for FiveCrownsCard {}
-
-    #[derive(Clone, Copy, Debug, PartialEq, PartialOrd, Eq, Ord)]
-    pub enum FiveCrownsRank {
-        Pip(u32),
-        Jack,
-        Queen,
-        King,
-    }
-
-    impl Display for FiveCrownsRank {
-        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-            match self {
-                Self::Pip(1) => {
-                    write!(f, "A")
-                }
-                Self::Pip(i) => write!(f, "{}", i),
-                Self::Jack => {
-                    write!(f, "J")
-                }
-                Self::Queen => {
-                    write!(f, "Q")
-                }
-                Self::King => {
-                    write!(f, "K")
-                }
-            }
-        }
-    }
-
-    impl Rank for FiveCrownsRank {}
 }
 
+/// A module for Magic the Gathering type cards.
 pub mod magic_card;
 
+/// A struct which adds functionality for concealing and revealing the card contained within it.
 #[derive(Clone, Debug)]
 pub struct FlippableCard<C: Card>(C, pub bool);
 
@@ -411,32 +515,49 @@ impl<C: Card> FlippableCard<C> {
         FlippableCard(card, true)
     }
 
+    /// Invert the current flip state of the card
     pub fn flip(&mut self) {
         self.1 = !self.1;
     }
 
+    /// Set the card's flip state to face-up
     pub fn flip_face_up(&mut self) {
         self.1 = true;
     }
 
+    /// Set the card's flip state to face-down
     pub fn flip_face_down(&mut self) {
         self.1 = false;
     }
 
+    /// Consume the flippable card, returning the card it contained
     pub fn into_inner(self) -> C {
         self.0
     }
 
+    /// Return a reference to the contained card
     pub fn peek_inner(&self) -> &C {
         &self.0
     }
 
+    /// Return a mutable reference to the contained card
+    pub fn inner_mut(&mut self) -> &mut C {
+        &mut self.0
+    }
+
+    /// Consume the flippable card, returning the card it contained only if the flippable card was face-up
     pub fn into_inner_checked(self) -> Result<C, Self> {
         if self.1 { Ok(self.0) } else { Err(self) }
     }
 
+    /// Return a reference to the contained card only if the flippable card is face-up
     pub fn peek_inner_checked(&self) -> Option<&C> {
         if self.1 { Some(&self.0) } else { None }
+    }
+
+    /// Return a mutable reference to the contained card only if the flippable card is face-up
+    pub fn inner_mut_checked(&mut self) -> Option<&mut C > {
+        if self.1 { Some(&mut self.0 )} else { None }
     }
 }
 

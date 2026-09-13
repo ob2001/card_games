@@ -29,7 +29,7 @@ pub enum KlondikeGameElement {
 
 impl KlondikeGameElement {
     /// Cycles through Klondike Game elements in a specified order
-    pub fn next(&mut self) {
+    pub fn next_element(&mut self) {
         *self = match self {
             KlondikeGameElement::Talon => KlondikeGameElement::Tableau,
             KlondikeGameElement::Tableau =>  KlondikeGameElement::Foundation,
@@ -38,6 +38,7 @@ impl KlondikeGameElement {
     }
 }
 
+#[derive(Debug)]
 pub struct KlondikeGame {
     talon: KlondikeDeck,
     tableau: KlondikeTableau,
@@ -48,6 +49,7 @@ pub struct KlondikeGame {
     history: Vec<KlondikeGameWeak>,
 }
 
+#[derive(Clone, Debug)]
 struct KlondikeGameWeak {
     talon: KlondikeDeck,
     tableau: KlondikeTableau,
@@ -85,8 +87,8 @@ impl KlondikeGame {
     pub fn init(&mut self) {
         // Gather all cards from other regions into talon for shuffling and redistribution
         self.talon.replenish_default().expect("Talon is initialized with default discard");
-        self.talon.take_cards(&mut self.tableau.gather_all());
-        self.talon.take_cards(&mut self.foundation.gather_all());
+        self.talon.add_cards(&mut self.tableau.gather_all());
+        self.talon.add_cards(&mut self.foundation.gather_all());
 
         // Ensure all cards are face-down before shuffling
         self.talon.all_face_down();
@@ -100,7 +102,7 @@ impl KlondikeGame {
             face_up_card.flip_face_up();
             self.tableau.play_card_to_stack(face_up_card, i).expect("Talon should not be emptied in initial setup");
 
-            for s in self.tableau.stacks_mut((i + 1)..7) {
+            for s in self.tableau.stacks_mut((i + 1)..7).expect("There are 7 stacks in the Tableau") {
                 s.play_to(
                     self.talon
                         .draw()
@@ -131,14 +133,14 @@ impl KlondikeGame {
 
     // Draw 3 cards from talon into talon discard
     pub fn draw_talon(&mut self) -> Result<(), KlondikeGameError> {
-        if self.talon.inner_deck().len() > 0 {
+        if self.talon.view_inner_deck().len() > 0 {
             for _ in 0..3 {
-                self.talon.discard_default_flip().map_err(|e| KlondikeGameError::DeckError(e))?;
+                self.talon.top_deck_discard_default_flip().map_err(|e| KlondikeGameError::DeckError(e))?;
             }
             Ok(())
         } else {
             self.talon.replenish_default().map_err(|e | KlondikeGameError::DeckError(e))?;
-            if self.talon.inner_deck().len() > 0 {
+            if self.talon.view_inner_deck().len() > 0 {
                 self.talon.all_face_down();
                 self.talon.reverse();
                 self.draw_talon()
@@ -267,7 +269,7 @@ impl KlondikeGame {
 
                     self.draw_talon()
                 } else if self.selected_cards.0.is_empty() {
-                    if let Some(c) =  self.talon.get_top_discard() {
+                    if let Some(c) =  self.talon.draw_discard() {
                         self.selected_cards = (vec![c], KlondikeGameElement::Talon, None);
                     }
                     Ok(())
@@ -294,7 +296,7 @@ impl KlondikeGame {
                         .map_err(|_| KlondikeGameError::PlayError);
                     
                     // Flip any uncovered tableau card face-up
-                    for stack in self.tableau.stacks_mut(0..7) {
+                    for stack in self.tableau.stacks_mut(0..7).expect("There are 7 stacks in the Tableau") {
                         if let Some(c) = stack.last_mut() {
                             c.flip_face_up();
                         }
@@ -328,7 +330,7 @@ impl KlondikeGame {
                     self.foundation.get_hovered_stack_mut().unwrap().inc_hovered_card();
 
                     // Flip any uncovered tableau card face-up
-                    for stack in self.tableau.stacks_mut(0..7) {
+                    for stack in self.tableau.stacks_mut(0..7).expect("There are 7 stacks in the Tableau") {
                         if let Some(c) = stack.last_mut() {
                             c.flip_face_up();
                         }
@@ -377,19 +379,19 @@ impl KlondikeGame {
         match self.hovered_element {
             KlondikeGameElement::Talon => {
                 self.talon.unhover();
-                self.hovered_element.next();
+                self.hovered_element.next_element();
                 self.tableau.hover();
             },
             KlondikeGameElement::Tableau => {
                 self.tableau.unhover();
-                self.hovered_element.next();
+                self.hovered_element.next_element();
                 self.foundation.hover();
                 let hs = self.foundation.get_hovered_stack_mut().unwrap();
                 hs.set_hovered_card(hs.len().saturating_sub(1)).expect("");
             },
             KlondikeGameElement::Foundation => {
                 self.foundation.unhover();
-                self.hovered_element.next();
+                self.hovered_element.next_element();
                 self.talon.hover_deck();
             },
         }
@@ -489,7 +491,7 @@ impl KlondikeGame {
                                         (Jack, Pip(10)) => true,
                                         (Queen, Jack) => true,
                                         (King, Queen) => {
-                                            for s in self.foundation.stacks(0..4) {
+                                            for s in self.foundation.stacks(0..4).expect("There are 4 stacks in the Foundation") {
                                                 match s.last() {
                                                     Some(c) => {
                                                         match c.peek_inner() {
@@ -533,15 +535,6 @@ impl KlondikeGame {
     fn win_screen(&mut self) {
         self.init();
         self.win = false;
-    }
-}
-
-impl Debug for KlondikeGame {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        write!(f,
-            "{}\n\n{:?}\n{:?}",
-            self.talon, self.tableau, self.foundation
-        )
     }
 }
 

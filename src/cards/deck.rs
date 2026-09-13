@@ -3,6 +3,7 @@ use crate::{
     lib_prelude::*,
 };
 
+/// Errors originating from Deck functionality
 #[derive(Clone, Debug)]
 pub enum DeckError {
     NoValidCard,
@@ -10,6 +11,8 @@ pub enum DeckError {
     NoDefaultDiscard,
 }
 
+/// Convenience enum for tracking whether the deck or default discard pile
+/// is curently hovered
 #[derive(Copy, Clone, Debug, PartialEq, Eq)]
 pub enum DeckToggle {
     Deck,
@@ -17,6 +20,7 @@ pub enum DeckToggle {
 }
 
 impl DeckToggle {
+    /// Convenience function to toggle between the two DeckToggle options
     pub fn toggle(&mut self) {
         *self = match self {
             Self::Deck => Self::Discard,
@@ -25,17 +29,17 @@ impl DeckToggle {
     }
 }
 
+/// A structure containing a collection of cards which may be shuffled, drawn from, and discarded from/to
 #[derive(Clone, Debug)]
 pub struct Deck<CardSet: Card> {
     deck: Vec<CardSet>,
     default_discard: Option<Vec<CardSet>>,
     display_discard: bool,
     hovered: Option<DeckToggle>,
-    // top_deck_hovered: bool,
-    // top_discard_hovered: bool,
 }
 
 impl<CardSet: Card> Deck<CardSet> {
+    /// Create a new deck containing no cards
     pub fn new_empty() -> Self {
         Deck {
             deck: vec![],
@@ -45,6 +49,8 @@ impl<CardSet: Card> Deck<CardSet> {
         }
     }
 
+    /// Create a new empty deck with a default discard pile,
+    /// and with an option to either display or hide the discard pile
     pub fn new_with_default_discard(discard: Vec<CardSet>, display_discard: bool) -> Self {
         let mut ret = Self::new_empty();
         ret.default_discard = Some(discard);
@@ -52,10 +58,16 @@ impl<CardSet: Card> Deck<CardSet> {
         ret
     }
 
+    /// Draw a single card from the top (end) of the deck and return it
+    /// to the function caller if it exists
     pub fn draw(&mut self) -> Option<CardSet> {
         self.deck.pop()
     }
 
+    /// Draw `n` cards from the top (end) of the deck and return them to the
+    /// function caller. If the deck contains fewer than `n` cards before drawing,
+    /// return the remainder of the Deck wrapped in an `Err` and allow the caller
+    /// to decide how to proceed.
     pub fn draw_n(&mut self, n: usize) -> Result<Vec<CardSet>, Vec<CardSet>> {
         if self.deck.len() >= n {
             Ok(self.deck.split_off(self.deck.len() - n))
@@ -64,7 +76,9 @@ impl<CardSet: Card> Deck<CardSet> {
         }
     }
 
-    pub fn discard_default(&mut self) -> Result<(), DeckError> {
+    /// Place the top card of the deck immediately onto the top of
+    /// its discard pile (if it has one).
+    pub fn top_deck_discard_default(&mut self) -> Result<(), DeckError> {
         match &mut self.default_discard {
             None => Err(DeckError::NoDefaultDiscard),
             Some(d) => {
@@ -78,19 +92,23 @@ impl<CardSet: Card> Deck<CardSet> {
         }
     }
 
-    pub fn discard_to(&mut self, other: &mut Deck<CardSet>) -> Result<(), DeckError> {
+    /// Place the top card of the deck immediately onto the top of the provided
+    /// deck.
+    pub fn top_deck_discard_to(&mut self, other: &mut Deck<CardSet>) -> Result<(), DeckError> {
         if let Some(c) = self.draw() {
-            other.take_cards(&mut vec![c]);
+            other.add_cards(&mut vec![c]);
             Ok(())
         } else {
             Err(DeckError::DrawOnEmptyDeck)
         }
     }
 
+    /// Borrow the top card of the deck, if it exists
     pub fn peek_top(&self) -> Option<&CardSet> {
         self.deck.last()
     }
 
+    /// Borrow the bottom card of the deck, if it exists
     pub fn peek_bottom(&self) -> Option<&CardSet> {
         self.deck.first()
     }
@@ -104,6 +122,8 @@ impl<CardSet: Card> Deck<CardSet> {
         }
     }
 
+    /// Return the contents of the deck's default discard pile to the bottom (beginning)
+    /// of the deck.
     pub fn replenish_default(&mut self) -> Result<(), DeckError> {
         if let Some(default_discard) = &mut self.default_discard {
             default_discard.append(&mut self.deck);
@@ -114,56 +134,76 @@ impl<CardSet: Card> Deck<CardSet> {
         }
     }
 
+    /// Return the contents of the provided deck to the bottom (beginning) of
+    /// the deck
     pub fn replenish_from(&mut self, other: &mut Deck<CardSet>) {
         other.deck.append(&mut self.deck);
         self.deck = other.deck.split_off(0);
     }
 
+    /// Reverse the order of the deck's contents
     pub fn reverse(&mut self) {
         self.deck.reverse();
     }
 
-    pub fn take_cards(&mut self, cards: &mut Vec<CardSet>) {
+    /// Add the provided cards to the top of the deck
+    pub fn add_cards(&mut self, cards: &mut Vec<CardSet>) {
         self.deck.append(cards);
     }
 
+    /// Push a single card onto the top of the deck
     pub fn push(&mut self, card: CardSet) {
         self.deck.push(card);
     }
 
-    pub fn inner_deck(&self) -> &Vec<CardSet> {
+    /// Remove the entire contents of the deck and return them to the caller
+    pub fn inner_deck(&mut self) -> Vec<CardSet> {
+        self.deck.split_off(0)
+    }
+
+    /// Borrow the deck
+    pub fn view_inner_deck(&self) -> &Vec<CardSet> {
         &self.deck
     }
 
+    /// Mutably borrow the deck
     pub fn inner_deck_mut(&mut self) -> &mut Vec<CardSet> {
         &mut self.deck
     }
 
+    /// If the deck is hovered, return whether it is the deck or discard pile
+    /// currently hovered over. If the deck is not hovered, return None
     pub fn is_hovered(&self) -> Option<DeckToggle> {
         self.hovered
     }
 
+    /// Toggle between hovering over the deck and its the default discard (if it exists)
     pub fn toggle_deck_hover(&mut self) {
         if let Some(h) = &mut self.hovered {
             h.toggle()
         }
     }
 
+    /// Hover over the discard pile (if it exists)
     pub fn hover_discard(&mut self) {
         if self.default_discard.is_some() {
             self.hovered = Some(DeckToggle::Discard);
         }
     }
     
+    /// Hover over the deck
     pub fn hover_deck(&mut self) {
         self.hovered = Some(DeckToggle::Deck);
     }
 
+    /// Completely unhover the Deck
     pub fn unhover(&mut self) {
         self.hovered = None;
     }
 
-    pub fn get_top_discard(&mut self) -> Option<CardSet> {
+    /// Draw a single card from the top (end) of the default discard
+    /// (if it exists)
+    pub fn draw_discard(&mut self) -> Option<CardSet> {
         if let Some(dc) = &mut self.default_discard {
             dc.pop()
         } else {
@@ -171,15 +211,7 @@ impl<CardSet: Card> Deck<CardSet> {
         }
     }
 
-    pub fn play_card_to_discard(&mut self, card: CardSet) -> Result<(), CardSet> {
-        if let Some(dc) = &mut self.default_discard {
-            dc.push(card);
-            Ok(())
-        } else {
-            Err(card)
-        }
-    }
-
+    /// Place passed cards onto the top (end) of the default discard (if it exists)
     pub fn play_cards_to_discard(&mut self, cards: &mut Vec<CardSet>) -> Result<(), DeckError> {
         if let Some(dc) = &mut self.default_discard {
             dc.append(cards);
@@ -191,7 +223,9 @@ impl<CardSet: Card> Deck<CardSet> {
 }
 
 impl<CardSet: Card> Deck<FlippableCard<CardSet>> {
-    pub fn discard_default_flip(&mut self) -> Result<(), DeckError> {
+    /// Place the top card of the deck immediately onto the top of
+    /// its discard pile (if it has one) flipped face-up
+    pub fn top_deck_discard_default_flip(&mut self) -> Result<(), DeckError> {
         match &mut self.default_discard {
             None => Err(DeckError::NoDefaultDiscard),
             Some(d) => {
@@ -206,18 +240,21 @@ impl<CardSet: Card> Deck<FlippableCard<CardSet>> {
         }
     }
 
+    /// Flip all cards in the deck face-up
     pub fn all_face_up(&mut self) {
         for c in self.deck.iter_mut() {
             c.flip_face_up();
         }
     }
 
+    /// Flip all cards in the deck face-down
     pub fn all_face_down(&mut self) {
         for c in self.deck.iter_mut() {
             c.flip_face_down();
         }
     }
 
+    /// Flip only the top card of the deck face-up
     pub fn top_face_up(&mut self) -> Result<(), DeckError> {
         if let Some(c) = self.deck.last_mut() {
             c.flip_face_up();
@@ -227,6 +264,7 @@ impl<CardSet: Card> Deck<FlippableCard<CardSet>> {
         }
     }
 
+    /// Flip only the top card of the deck face-down
     pub fn top_face_down(&mut self) -> Result<(), DeckError> {
         if let Some(c) = self.deck.last_mut() {
             c.flip_face_down();
@@ -236,6 +274,7 @@ impl<CardSet: Card> Deck<FlippableCard<CardSet>> {
         }
     }
 
+    /// Toggle the flip state of the top card of the deck
     pub fn flip_top(&mut self) -> Result<(), DeckError> {
         if let Some(c) = self.deck.last_mut() {
             c.flip();
@@ -254,6 +293,7 @@ impl<CardSet: Card> std::iter::Iterator for Deck<CardSet> {
 }
 
 impl Deck<FlippableCard<FrenchCard>> {
+    /// Generate and return a standard 52-card French-style deck (no Jokers)
     pub fn new_standard_french_deck(default_discard: bool, display_discard: bool) -> Deck<FlippableCard<FrenchCard>> {
         use crate::cards::FlippableCard;
         use crate::cards::french_card::FrenchRank::*;
@@ -291,6 +331,7 @@ impl Deck<FlippableCard<FrenchCard>> {
         }
     }
 
+    /// Generate and return a 54-card French style deck with 2 Jokers
     pub fn new_joker_french_deck(
         default_discard: Option<Vec<FlippableCard<FrenchCard>>>,
         display_discard: bool
