@@ -45,7 +45,27 @@ pub struct KlondikeGame {
     hovered_element: KlondikeGameElement,
     selected_cards: (Vec<KlondikeCard>, KlondikeGameElement, Option<usize>),
     win: bool,
-    stdout: Stdout,
+    history: Vec<KlondikeGameWeak>,
+}
+
+struct KlondikeGameWeak {
+    talon: KlondikeDeck,
+    tableau: KlondikeTableau,
+    foundation: KlondikeFoundation,
+    hovered_element: KlondikeGameElement,
+    selected_cards: (Vec<KlondikeCard>, KlondikeGameElement, Option<usize>),
+}
+
+impl From<&KlondikeGame> for KlondikeGameWeak {
+    fn from(value: &KlondikeGame) -> Self {
+        KlondikeGameWeak {
+            talon: value.talon.clone(),
+            tableau: value.tableau.clone(),
+            foundation: value.foundation.clone(),
+            hovered_element: value.hovered_element.clone(),
+            selected_cards: value.selected_cards.clone(),
+        }
+    }
 }
 
 impl KlondikeGame {
@@ -57,7 +77,7 @@ impl KlondikeGame {
             hovered_element: KlondikeGameElement::Talon,
             selected_cards: (vec![], KlondikeGameElement::Talon, None),
             win: false,
-            stdout: std::io::stdout(),
+            history: vec![],
         }
     }
 
@@ -104,12 +124,9 @@ impl KlondikeGame {
         // Set win state to false as this is the start of a new game
         self.win = false;
 
-        self.stdout = std::io::stdout();
-        self.selected_cards = (vec![], KlondikeGameElement::Talon, None);
-    }
+        self.history = vec![];
 
-    pub fn set_stdout(&mut self, stdout: Stdout) {
-        self.stdout = stdout;
+        self.selected_cards = (vec![], KlondikeGameElement::Talon, None);
     }
 
     // Draw 3 cards from talon into talon discard
@@ -131,31 +148,33 @@ impl KlondikeGame {
         }
     }
 
-    fn enter_game_screen(&mut self) -> Result<(), std::io::Error> {
-        execute!(self.stdout,
+    fn enter_game_screen(&mut self, stdout: &mut Stdout) -> Result<(), std::io::Error> {
+        execute!(stdout,
             terminal::EnterAlternateScreen,
             cursor::Hide,
         )
     }
 
-    fn leave_game_screen(&mut self) -> Result<(), std::io::Error> {
-        execute!(self.stdout,
+    fn leave_game_screen(&mut self, stdout: &mut Stdout) -> Result<(), std::io::Error> {
+        execute!(stdout,
             cursor::Show,
             terminal::LeaveAlternateScreen
         )
     }
 
-    fn clear_screen(&mut self) -> Result<(), std::io::Error> {
-        execute!(self.stdout,
+    fn clear_screen(&mut self, stdout: &mut Stdout) -> Result<(), std::io::Error> {
+        execute!(stdout,
             terminal::Clear(terminal::ClearType::All),
             cursor::MoveTo(0, 0),
         )
     }
 
     pub fn run_game(&mut self) -> Result<(), std::io::Error> {
+        let mut stdout = std::io::stdout();
+
         // Setup game environment in terminal, refresh screen and print initial game state
-        self.enter_game_screen()?;
-        self.clear_screen()?;
+        self.enter_game_screen(&mut stdout)?;
+        self.clear_screen(&mut stdout)?;
         print!("{}", self);
 
         // Enter interactive loop
@@ -164,7 +183,7 @@ impl KlondikeGame {
                 self.win_screen();
             } else {
                 // Refresh screen and print current game state
-                self.clear_screen()?;
+                self.clear_screen(&mut stdout)?;
                 print!("{}", self);
 
                 // Check for any terminal events, capture any error
@@ -173,22 +192,22 @@ impl KlondikeGame {
                         match ev {
                             // Match on keyboard events
                             Event::Key(ke) => {
-                                match (ke.kind, ke.code) {
+                                match (ke.kind, ke.code, ke.modifiers) {
                                     // Exit interactive loop
-                                    (KeyEventKind::Press, KeyCode::Esc) => break,
+                                    (KeyEventKind::Press, KeyCode::Esc, _) => break,
 
                                     // Perform selection action
-                                    (KeyEventKind::Press, KeyCode::Enter) => self.perform_selection(),
+                                    (KeyEventKind::Press, KeyCode::Enter, _) => self.perform_selection(),
 
                                     // Cycle selected game element
-                                    (KeyEventKind::Press, KeyCode::Tab) => self.cycle_selected_game_element(),
+                                    (KeyEventKind::Press, KeyCode::Tab, _) => self.cycle_selected_game_element(),
 
                                     // Navigate within selected game element
-                                    (KeyEventKind::Press, KeyCode::Down) => self.navigate_game_element_down(),
-                                    (KeyEventKind::Press, KeyCode::Up) => self.navigate_game_element_up(),
+                                    (KeyEventKind::Press, KeyCode::Down, _) => self.navigate_game_element_down(),
+                                    (KeyEventKind::Press, KeyCode::Up, _) => self.navigate_game_element_up(),
 
                                     // Navigate within hovered game sub-element
-                                    (KeyEventKind::Press, KeyCode::Left) => {
+                                    (KeyEventKind::Press, KeyCode::Left, _) => {
                                         if self.hovered_element == KlondikeGameElement::Tableau {
                                             if let Some(curr_stack) = self.tableau.get_hovered_stack_mut() {
                                                 if let Some(c) = curr_stack.peek_prev_card() && c.1 {
@@ -198,7 +217,7 @@ impl KlondikeGame {
                                         }
                                         Ok(())
                                     },
-                                    (KeyEventKind::Press, KeyCode::Right) => {
+                                    (KeyEventKind::Press, KeyCode::Right, _) => {
                                         if self.hovered_element == KlondikeGameElement::Tableau {
                                             if let Some(curr_stack) = self.tableau.get_hovered_stack_mut() {
                                                 if let Some(c) = curr_stack.peek_next_card() && c.1 {
@@ -208,8 +227,9 @@ impl KlondikeGame {
                                         }
                                         Ok(())
                                     },
-                                    (KeyEventKind::Press, KeyCode::Char('z')) => self.replace_selected_cards(),
-                                    (KeyEventKind::Press, KeyCode::Char('n')) => {
+                                    (KeyEventKind::Press, KeyCode::Char('z'), KeyModifiers::NONE) => self.replace_selected_cards(),
+                                    (KeyEventKind::Press, KeyCode::Char('z'), KeyModifiers::CONTROL) => { self.undo_move(); Ok(()) },
+                                    (KeyEventKind::Press, KeyCode::Char('n'), _) => {
                                         self.init();
                                         continue
                                     }
@@ -233,10 +253,11 @@ impl KlondikeGame {
         };
 
         // Clean up and restore terminal
-        self.leave_game_screen()
+        self.leave_game_screen(&mut stdout)
     }
 
     fn perform_selection(&mut self) -> Result<(), KlondikeGameError> {
+        self.history.push(KlondikeGameWeak::from(&*self));
         match self.hovered_element {
             KlondikeGameElement::Talon => {
                 if self.talon.is_hovered().unwrap() == DeckToggle::Deck {
@@ -246,7 +267,7 @@ impl KlondikeGame {
 
                     self.draw_talon()
                 } else if self.selected_cards.0.is_empty() {
-                    if let Some(c) = self.talon.get_top_discard() {
+                    if let Some(c) =  self.talon.get_top_discard() {
                         self.selected_cards = (vec![c], KlondikeGameElement::Talon, None);
                     }
                     Ok(())
@@ -263,7 +284,7 @@ impl KlondikeGame {
                         }
                     }
                     Ok(())
-                } 
+                }
 
                 // Player is attempting to place their picked-up card/cards onto the tableau
                 else if self.check_move() {
@@ -339,6 +360,17 @@ impl KlondikeGame {
             self.selected_cards = (vec![], KlondikeGameElement::Talon, None);
         }
         Ok(())
+    }
+
+    fn undo_move(&mut self) {
+        let state_res = self.history.pop();
+        if let Some(state) = state_res {
+            self.talon = state.talon;
+            self.tableau = state.tableau;
+            self.foundation = state.foundation;
+            self.hovered_element = state.hovered_element;
+            self.selected_cards = state.selected_cards;
+        }
     }
 
     fn cycle_selected_game_element(&mut self) -> Result<(), KlondikeGameError> {
@@ -457,7 +489,7 @@ impl KlondikeGame {
                                         (Jack, Pip(10)) => true,
                                         (Queen, Jack) => true,
                                         (King, Queen) => {
-                                            for s in self.foundation.stacks_mut(0..4) {
+                                            for s in self.foundation.stacks(0..4) {
                                                 match s.last() {
                                                     Some(c) => {
                                                         match c.peek_inner() {
@@ -520,13 +552,14 @@ impl Display for KlondikeGame {
         let (w, _) = terminal::size().unwrap_or((50, 50));
 
         let _ = queue!(stdout,
-                style::Print(format!("{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n",
+                style::Print(format!("{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n",
                 crate::ui::format_box_message("Keybindings", w as usize, true),
                     " <Esc> - Exit game",
                     " <Tab> - Cycle game element selection [Talon > Tableau > Foundation]",
                     " <Up>/<Down> - Toggle Talon draw/play or select Tablueau/Foundation column",
                     " <Left>/<Right> - Select card in Tableau column",
                     " <z> - Deselect current selection",
+                    " <Ctrl> + <z> - Undo move",
                     " <n> - Start new game",
                     "-".repeat(w as usize))
                 ),

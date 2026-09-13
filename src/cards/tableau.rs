@@ -85,6 +85,10 @@ impl<CardSet: Card> Tableau<CardSet> {
         &mut self.stacks[range]
     }
 
+    pub fn stacks(&self, range: std::ops::Range<usize>) -> &[CardStack<CardSet>] {
+        &self.stacks[range]
+    }
+
     pub fn play_card_to_stack(&mut self, card: CardSet, i: usize) -> Result<(), CardSet> {
         if i < self.stacks.len() {
             self.stacks[i].play_to(card)
