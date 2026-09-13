@@ -9,7 +9,7 @@ pub trait PlayTo<CardSet: cards::Card> {
 #[allow(unused)]
 pub(crate) mod lib_prelude {
     pub use std::fmt::{Debug, Display};
-    pub use crossterm::{execute, queue, cursor, event::{self, Event, KeyEvent, KeyEventKind, KeyCode}, style, terminal};
+    pub use crossterm::{execute, queue, cursor, event::{self, Event, KeyEvent, KeyEventKind, KeyCode, KeyModifiers}, style, terminal};
     pub use crate::{
         PlayTo,
         cards::{
