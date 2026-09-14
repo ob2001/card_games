@@ -1,3 +1,4 @@
+use std::io::{ Stdout, Write };
 use crate::lib_prelude::*;
 
 pub mod card_stack;
@@ -5,7 +6,17 @@ pub mod deck;
 pub mod tableau;
 
 /// Trait required to be implemented by any object to act as a Card throughout the library
-pub trait Card: Debug + Display + Clone {}
+pub trait Card: Debug + Display + Clone {
+    /// Queues the card to be drawn to passed `stdout`
+    fn draw_que(&self, stdout: &mut Stdout) -> Result<(), std::io::Error>;
+
+    /// Immediately draws the card to passed `stdout`
+    fn draw_imm(&self, stdout: &mut Stdout) -> Result<(), std::io::Error> {
+        self.draw_que(stdout)?;
+        stdout.flush()
+    }
+}
+
 pub trait Rank: Debug + Clone + Copy + PartialEq + Eq + PartialOrd + Ord + Display {
     /// Returns the next-highest rank if it exists
     fn next(&self) -> Option<Self>;
@@ -16,7 +27,7 @@ pub trait Rank: Debug + Clone + Copy + PartialEq + Eq + PartialOrd + Ord + Displ
 
 /// A module for French type cards
 pub mod french_card {
-    use super::{Card, Display, Rank};
+    use super::{ Card, Display, Rank, Stdout, queue, style::{self, Color}, Stylize };
 
     #[derive(Clone, Copy, Debug)]
     pub enum FrenchCard {
@@ -27,26 +38,27 @@ pub mod french_card {
         Joker,
     }
 
-    impl Card for FrenchCard {}
+    impl Card for FrenchCard {
+        fn draw_que(&self, stdout: &mut Stdout) -> Result<(), std::io::Error> {
+            style::PrintStyledContent("H".with(style::Color::Red));
+            match self {
+                Self::Spades(r) => queue!(stdout, style::Print(format!("{}♠", r))),
+                Self::Hearts(r) => queue!(stdout, style::PrintStyledContent(format!("{}♥", r).with(Color::Red))),
+                Self::Clubs(r) => queue!(stdout, style::Print(format!("{}♣", r))),
+                Self::Diamonds(r) => queue!(stdout, style::PrintStyledContent(format!("{}♦", r).with(Color::Red))),
+                Self::Joker => queue!(stdout, style::Print("Jk")),
+            }
+        }
+    }
 
     impl Display for FrenchCard {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
             match self {
-                Self::Spades(r) => {
-                    write!(f, "{}♠", r)
-                }
-                Self::Hearts(r) => {
-                    write!(f, "\x1b[91m{}♥\x1b[37m", r)
-                }
-                Self::Clubs(r) => {
-                    write!(f, "{}♣", r)
-                }
-                Self::Diamonds(r) => {
-                    write!(f, "\x1b[91m{}♦\x1b[37m", r)
-                }
-                Self::Joker => {
-                    write!(f, "Jk")
-                }
+                Self::Spades(r) => write!(f, "{}♠", r),
+                Self::Hearts(r) => write!(f, "\x1b[91m{}♥\x1b[37m", r),
+                Self::Clubs(r) => write!(f, "{}♣", r),
+                Self::Diamonds(r) => write!(f, "\x1b[91m{}♦\x1b[37m", r),
+                Self::Joker => write!(f, "Jk"),
             }
         }
     }
@@ -92,9 +104,7 @@ pub mod french_card {
             match self {
                 Self::Pip(n) => {
                     match other {
-                        Self::Pip(m) => {
-                            n.cmp(m)
-                        },
+                        Self::Pip(m) => n.cmp(m),
                         _ => std::cmp::Ordering::Less
                     }
                 },
@@ -126,19 +136,11 @@ pub mod french_card {
     impl Display for FrenchRank {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
             match self {
-                Self::Pip(1) => {
-                    write!(f, "A")
-                }
+                Self::Pip(1) => write!(f, "A"),
                 Self::Pip(i) => write!(f, "{}", i),
-                Self::Jack => {
-                    write!(f, "J")
-                }
-                Self::Queen => {
-                    write!(f, "Q")
-                }
-                Self::King => {
-                    write!(f, "K")
-                }
+                Self::Jack => write!(f, "J"),
+                Self::Queen => write!(f, "Q"),
+                Self::King => write!(f, "K"),
             }
         }
     }
@@ -146,7 +148,7 @@ pub mod french_card {
 
 /// A module for Italian type cards
 pub mod italian_card {
-    use super::{Card, Display, Rank};
+    use super::{ Card, Display, Rank, queue, style };
 
     #[derive(Clone, Copy, Debug)]
     pub enum ItalianCard {
@@ -159,23 +161,24 @@ pub mod italian_card {
     impl Display for ItalianCard {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
             match self {
-                Self::Swords(r) => {
-                    write!(f, "{}♠", r)
-                }
-                Self::Cups(r) => {
-                    write!(f, "{}♥", r)
-                }
-                Self::Batons(r) => {
-                    write!(f, "{}♣", r)
-                }
-                Self::Coins(r) => {
-                    write!(f, "{}♦", r)
-                }
+                Self::Swords(r) => write!(f, "{}♠", r),
+                Self::Cups(r) => write!(f, "{}♥", r),
+                Self::Batons(r) => write!(f, "{}♣", r),
+                Self::Coins(r) => write!(f, "{}♦", r),
             }
         }
     }
 
-    impl Card for ItalianCard {}
+    impl Card for ItalianCard {
+        fn draw_que(&self, stdout: &mut std::io::Stdout) -> Result<(), std::io::Error> {
+            match self {
+                Self::Swords(r) => queue!(stdout, style::Print(format!("{}♠", r))),
+                Self::Cups(r) => queue!(stdout, style::Print(format!("{}♥", r))),
+                Self::Batons(r) => queue!(stdout, style::Print(format!("{}♣", r))),
+                Self::Coins(r) => queue!(stdout, style::Print(format!("{}♦", r))),
+            }
+        }
+    }
 
     #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
     pub enum ItalianRank {
@@ -210,19 +213,11 @@ pub mod italian_card {
     impl Display for ItalianRank {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
             match self {
-                Self::Pip(1) => {
-                    write!(f, "A")
-                }
+                Self::Pip(1) => write!(f, "A"),
                 Self::Pip(i) => write!(f, "{}", i),
-                Self::Jack => {
-                    write!(f, "J")
-                }
-                Self::Knight => {
-                    write!(f, "k")
-                }
-                Self::King => {
-                    write!(f, "K")
-                }
+                Self::Jack => write!(f, "J"),
+                Self::Knight => write!(f, "k"),
+                Self::King => write!(f, "K"),
             }
         }
     }
@@ -230,7 +225,7 @@ pub mod italian_card {
 
 /// A module for Tarocchi type cards (Italian plus the Queen rank)
 pub mod tarocchi_card {
-    use super::{Card, Display, Rank};
+    use super::{ Card, Display, Rank, queue, style };
 
     #[derive(Clone, Debug)]
     pub enum TarocchiCard {
@@ -240,23 +235,24 @@ pub mod tarocchi_card {
         Coins(TarocchiRank),
     }
 
-    impl Card for TarocchiCard {}
+    impl Card for TarocchiCard {
+        fn draw_que(&self, stdout: &mut std::io::Stdout) -> Result<(), std::io::Error> {
+            match self {
+                Self::Swords(r) => queue!(stdout, style::Print(format!("{}♠", r))),
+                Self::Cups(r) => queue!(stdout, style::Print(format!("{}♥", r))),
+                Self::Batons(r) => queue!(stdout, style::Print(format!("{}♣", r))),
+                Self::Coins(r) => queue!(stdout, style::Print(format!("{}♦", r))),
+            }
+        }
+    }
 
     impl Display for TarocchiCard {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
             match self {
-                Self::Swords(r) => {
-                    write!(f, "{}♠", r)
-                }
-                Self::Cups(r) => {
-                    write!(f, "{}♥", r)
-                }
-                Self::Batons(r) => {
-                    write!(f, "{}♣", r)
-                }
-                Self::Coins(r) => {
-                    write!(f, "{}♦", r)
-                }
+                Self::Swords(r) => write!(f, "{}♠", r),
+                Self::Cups(r) => write!(f, "{}♥", r),
+                Self::Batons(r) => write!(f, "{}♣", r),
+                Self::Coins(r) => write!(f, "{}♦", r),
             }
         }
     }
@@ -273,22 +269,12 @@ pub mod tarocchi_card {
     impl Display for TarocchiRank {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
             match self {
-                Self::Pip(1) => {
-                    write!(f, "A")
-                }
+                Self::Pip(1) => write!(f, "A"),
                 Self::Pip(i) => write!(f, "{}", i),
-                Self::Jack => {
-                    write!(f, "J")
-                }
-                Self::Knight => {
-                    write!(f, "k")
-                }
-                Self::Queen => {
-                    write!(f, "Q")
-                }
-                Self::King => {
-                    write!(f, "K")
-                }
+                Self::Jack => write!(f, "J"),
+                Self::Knight => write!(f, "k"),
+                Self::Queen => write!(f, "Q"),
+                Self::King => write!(f, "K"),
             }
         }
     }
@@ -318,9 +304,9 @@ pub mod tarocchi_card {
     }
 }
 
-/// A module forTarot type cards (Tarocchi plus 21 trump-suited cards)
+/// A module for Tarot type cards (Tarocchi plus 21 trump-suited cards)
 pub mod tarot_card {
-    use super::{Card, Display, Rank, tarocchi_card::TarocchiRank};
+    use super::{ Card, Display, Rank, tarocchi_card::TarocchiRank, queue, style };
 
     #[derive(Clone, Copy, Debug)]
     pub enum TarotCard {
@@ -343,7 +329,17 @@ pub mod tarot_card {
         }
     }
 
-    impl Card for TarotCard {}
+    impl Card for TarotCard {
+        fn draw_que(&self, stdout: &mut std::io::Stdout) -> Result<(), std::io::Error> {
+            match self {
+                TarotCard::Swords(r) => queue!(stdout, style::Print(format!("{}♠", r))),
+                TarotCard::Cups(r) => queue!(stdout, style::Print(format!("{}♥", r))),
+                TarotCard::Batons(r) => queue!(stdout, style::Print(format!("{}♣", r))),
+                TarotCard::Coins(r) => queue!(stdout, style::Print(format!("{}♦", r))),
+                TarotCard::Trump(r) => queue!(stdout, style::Print(format!("{}", r))),
+            }
+        }
+    }
 
     #[derive(Clone, Copy, Debug, PartialEq, Eq, PartialOrd, Ord)]
     pub enum TarotTrumps {
@@ -463,7 +459,7 @@ pub mod tarot_card {
 pub mod five_crowns_card {
     use crate::cards::french_card::FrenchRank;
 
-    use super::{Card, Display};
+    use super::{ Card, Display, queue, style, Stylize };
 
     #[derive(Clone, Debug)]
     pub enum FiveCrownsCard {
@@ -478,97 +474,108 @@ pub mod five_crowns_card {
     impl Display for FiveCrownsCard {
         fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
             match self {
-                Self::Spades(r) => {
-                    write!(f, "{}♠", r)
-                }
-                Self::Hearts(r) => {
-                    write!(f, "\x1b[91m{}♥\x1b[37m", r)
-                }
-                Self::Clubs(r) => {
-                    write!(f, "\x1b[92m{}♣\x1b[37m", r)
-                }
-                Self::Diamonds(r) => {
-                    write!(f, "\x1b[36m{}♦\x1b[37m", r)
-                }
-                Self::Stars(r) => {
-                    write!(f, "\x1b[93m{}★\x1b[37m", r)
-                }
-                Self::Joker => {
-                    write!(f, "\x1b[91mJ\x1b[92mk\x1b[93mr\x1b[37m")
-                }
+                Self::Spades(r) => write!(f, "{}♠", r),
+                Self::Hearts(r) => write!(f, "\x1b[91m{}♥\x1b[37m", r),
+                Self::Clubs(r) => write!(f, "\x1b[92m{}♣\x1b[37m", r),
+                Self::Diamonds(r) => write!(f, "\x1b[36m{}♦\x1b[37m", r),
+                Self::Stars(r) => write!(f, "\x1b[93m{}★\x1b[37m", r),
+                Self::Joker => write!(f, "\x1b[91mJ\x1b[92mk\x1b[93mr\x1b[37m"),
             }
         }
     }
 
-    impl Card for FiveCrownsCard {}
+    impl Card for FiveCrownsCard {
+        fn draw_que(&self, stdout: &mut std::io::Stdout) -> Result<(), std::io::Error> {
+            match self {
+                Self::Spades(r) => queue!(stdout, style::Print(format!("{}♠", r))),
+                Self::Hearts(r) => queue!(stdout, style::PrintStyledContent(format!("{}♥", r).with(style::Color::Red))),
+                Self::Clubs(r) => queue!(stdout, style::PrintStyledContent(format!("{}♣", r).with(style::Color::Green))),
+                Self::Diamonds(r) => queue!(stdout, style::PrintStyledContent(format!("{}♦", r).with(style::Color::Blue))),
+                Self::Stars(r) => queue!(stdout, style::PrintStyledContent(format!("{}★", r).with(style::Color::Yellow))),
+                Self::Joker => queue!(stdout, style::Print("Jk")),
+            }
+        }
+    }
+}
+
+/// A module for flippable cards
+pub mod flippable_card {
+    use super::{ Card, Display, Stdout, queue, style };
+    /// A struct which adds functionality for concealing and revealing the card contained within it.
+    #[derive(Clone, Debug)]
+    pub struct FlippableCard<C: Card>(C, pub bool);
+
+    impl<C: Card> FlippableCard<C> {
+        pub fn new(card: C) -> FlippableCard<C> {
+            FlippableCard(card, true)
+        }
+
+        /// Invert the current flip state of the card
+        pub fn flip(&mut self) {
+            self.1 = !self.1;
+        }
+
+        /// Set the card's flip state to face-up
+        pub fn flip_face_up(&mut self) {
+            self.1 = true;
+        }
+
+        /// Set the card's flip state to face-down
+        pub fn flip_face_down(&mut self) {
+            self.1 = false;
+        }
+
+        /// Consume the flippable card, returning the card it contained
+        pub fn into_inner(self) -> C {
+            self.0
+        }
+
+        /// Return a reference to the contained card
+        pub fn peek_inner(&self) -> &C {
+            &self.0
+        }
+
+        /// Return a mutable reference to the contained card
+        pub fn inner_mut(&mut self) -> &mut C {
+            &mut self.0
+        }
+
+        /// Consume the flippable card, returning the card it contained only if the flippable card was face-up
+        pub fn into_inner_checked(self) -> Result<C, Self> {
+            if self.1 { Ok(self.0) } else { Err(self) }
+        }
+
+        /// Return a reference to the contained card only if the flippable card is face-up
+        pub fn peek_inner_checked(&self) -> Option<&C> {
+            if self.1 { Some(&self.0) } else { None }
+        }
+
+        /// Return a mutable reference to the contained card only if the flippable card is face-up
+        pub fn inner_mut_checked(&mut self) -> Option<&mut C > {
+            if self.1 { Some(&mut self.0 )} else { None }
+        }
+    }
+
+    impl<C: Card> Card for FlippableCard<C> {
+        fn draw_que(&self, stdout: &mut Stdout) -> Result<(), std::io::Error> {
+            if self.1 {
+                self.0.draw_que(stdout)
+            } else {
+                queue!(stdout, style::Print("XX"))
+            }
+        }
+    }
+
+    impl<C: Card> Display for FlippableCard<C> {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            if self.1 {
+                write!(f, "{}", self.0)
+            } else {
+                write!(f, "XX")
+            }
+        }
+    }
 }
 
 /// A module for Magic the Gathering type cards.
 pub mod magic_card;
-
-/// A struct which adds functionality for concealing and revealing the card contained within it.
-#[derive(Clone, Debug)]
-pub struct FlippableCard<C: Card>(C, pub bool);
-
-impl<C: Card> FlippableCard<C> {
-    pub fn new(card: C) -> FlippableCard<C> {
-        FlippableCard(card, true)
-    }
-
-    /// Invert the current flip state of the card
-    pub fn flip(&mut self) {
-        self.1 = !self.1;
-    }
-
-    /// Set the card's flip state to face-up
-    pub fn flip_face_up(&mut self) {
-        self.1 = true;
-    }
-
-    /// Set the card's flip state to face-down
-    pub fn flip_face_down(&mut self) {
-        self.1 = false;
-    }
-
-    /// Consume the flippable card, returning the card it contained
-    pub fn into_inner(self) -> C {
-        self.0
-    }
-
-    /// Return a reference to the contained card
-    pub fn peek_inner(&self) -> &C {
-        &self.0
-    }
-
-    /// Return a mutable reference to the contained card
-    pub fn inner_mut(&mut self) -> &mut C {
-        &mut self.0
-    }
-
-    /// Consume the flippable card, returning the card it contained only if the flippable card was face-up
-    pub fn into_inner_checked(self) -> Result<C, Self> {
-        if self.1 { Ok(self.0) } else { Err(self) }
-    }
-
-    /// Return a reference to the contained card only if the flippable card is face-up
-    pub fn peek_inner_checked(&self) -> Option<&C> {
-        if self.1 { Some(&self.0) } else { None }
-    }
-
-    /// Return a mutable reference to the contained card only if the flippable card is face-up
-    pub fn inner_mut_checked(&mut self) -> Option<&mut C > {
-        if self.1 { Some(&mut self.0 )} else { None }
-    }
-}
-
-impl<C: Card> Card for FlippableCard<C> {}
-
-impl<C: Card> Display for FlippableCard<C> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if self.1 {
-            write!(f, "{}", self.0)
-        } else {
-            write!(f, "XX")
-        }
-    }
-}

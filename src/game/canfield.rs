@@ -1,5 +1,5 @@
 use crate::{
-    cards::{FlippableCard, deck::Deck, tableau::Tableau},
+    cards::{ deck::Deck, tableau::Tableau },
     lib_prelude::*,
 };
 
@@ -15,8 +15,8 @@ impl Canfield {
         Canfield {
             talon: Deck::new_standard_french_deck(true, true),
             stock: Deck::new_empty(),
-            tableau: Tableau::new(StackVariant::VerticalTtB, 4),
-            foundation: Tableau::new(StackVariant::Flush, 4),
+            tableau: Tableau::new(CardStackVariant::VerticalTtB, 4),
+            foundation: Tableau::new(CardStackVariant::Flush, 4),
         }
     }
 
@@ -38,13 +38,13 @@ impl Canfield {
         self.stock.top_face_up().expect("Stock should not be empty, it was just dealt 13 cards");
 
         // Draw one card from talon to be first foundation card
-        let mut c = self.talon.draw().expect("Talon should not be emptied in initial setup");
+        let mut c = self.talon.draw_card().expect("Talon should not be emptied in initial setup");
         c.flip_face_up();
         self.foundation.play_card_to_stack(c, 0).expect("Foundation stack 0 should exist");
 
         // Play one card from talon to each tableau stack
         for i in 0..4 {
-            let mut c = self.talon.draw().expect("Talon should not be emptied in initial setup");
+            let mut c = self.talon.draw_card().expect("Talon should not be emptied in initial setup");
             c.flip_face_up();
             self.tableau.play_card_to_stack(c, i).expect(&format!("Tableau stack {} should exist", i));
         }

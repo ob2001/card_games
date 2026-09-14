@@ -2,21 +2,21 @@ pub mod cards;
 pub mod game;
 pub mod ui;
 
-pub trait PlayTo<CardSet: cards::Card> {
-    fn play_to(&mut self, card: CardSet) -> Result<(), CardSet>;
+pub trait PlayTo<C: cards::Card> {
+    fn play_to(&mut self, card: C) -> Result<(), C>;
 }
 
 #[allow(unused)]
 pub(crate) mod lib_prelude {
     pub use std::fmt::{ Debug, Display };
     pub use crossterm::{ execute, queue, cursor, event::{ self, Event, KeyEvent, KeyEventKind, KeyCode, KeyModifiers },
-        style, terminal };
+        style::{ self, Stylize }, terminal };
     pub use crate::{
         PlayTo,
         cards::{
-            Card, card_stack::StackVariant, five_crowns_card::FiveCrownsCard,
+            Card, card_stack::CardStackVariant, five_crowns_card::FiveCrownsCard,
             french_card::FrenchCard, italian_card::ItalianCard, magic_card::MagicCardEntry,
-            tarocchi_card::TarocchiCard, tarot_card::TarotCard,
+            tarocchi_card::TarocchiCard, tarot_card::TarotCard, flippable_card::FlippableCard,
         },
     };
 }

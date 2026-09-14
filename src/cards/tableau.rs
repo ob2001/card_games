@@ -1,12 +1,14 @@
+use std::io::{ Stdout, Write };
 use super::card_stack::CardStack;
-use crate::{cards::card_stack, lib_prelude::*};
+use crate::{ cards::card_stack, lib_prelude::* };
 
 /// A representation of an array of card stacks which may each be played to.
 #[derive(Clone)]
-pub struct Tableau<CardSet: Card> {
-    stacks: Vec<CardStack<CardSet>>,
+pub struct Tableau<C: Card> {
+    stacks: Vec<CardStack<C>>,
     variant: TableauVariant,
     hovered_stack: Option<usize>,
+    pos: Option<(u16, u16)>,
 }
 
 /// Variant enum for use when displaying the Tableau. Indicates the order and direction
@@ -27,14 +29,25 @@ pub enum TableauError {
     InvalidHoveredStack
 }
 
-impl<CardSet: Card> Tableau<CardSet> {
+impl<C: Card> Tableau<C> {
     /// Return a new Tableau with `n_stacks` empty stacks of variant `stack_variant`
-    pub fn new(stack_variant: StackVariant, n_stacks: usize) -> Self {
+    pub fn new(stack_variant: CardStackVariant, n_stacks: usize) -> Self {
         Tableau {
             stacks: vec![CardStack::new(stack_variant, None); n_stacks],
             variant: TableauVariant::HorizontalLtR,
             hovered_stack: None,
+            pos: None,
         }
+    }
+
+    pub fn draw_imm(&self, stdout: &mut Stdout) -> Result<(), std::io::Error> {
+        self.draw_que(stdout)?;
+        stdout.flush()
+    }
+
+    // TODO
+    pub fn draw_que(&self, stdout: &mut Stdout) -> Result<(), std::io::Error> {
+        todo!();
     }
 
     /// Set the display variant of the Tableau
@@ -94,7 +107,7 @@ impl<CardSet: Card> Tableau<CardSet> {
     }
 
     /// Mutably borrow the currently hovered CardStack, if any
-    pub fn get_hovered_stack_mut(&mut self) -> Option<&mut CardStack<CardSet>> {
+    pub fn get_hovered_stack_mut(&mut self) -> Option<&mut CardStack<C>> {
         if let Some(c) = self.hovered_stack {
             Some(&mut self.stacks[c])
         } else {
@@ -103,17 +116,17 @@ impl<CardSet: Card> Tableau<CardSet> {
     }
 
     /// Mutably borrow all stacks in provided range provided the range is valid
-    pub fn stacks_mut(&mut self, range: std::ops::Range<usize>) -> Option<&mut [CardStack<CardSet>]> {
+    pub fn stacks_mut(&mut self, range: std::ops::Range<usize>) -> Option<&mut [CardStack<C>]> {
         self.stacks.get_mut(range)
     }
 
     /// Borrow all stacks in provided range provided the range is valid
-    pub fn stacks(&self, range: std::ops::Range<usize>) -> Option<&[CardStack<CardSet>]> {
+    pub fn stacks(&self, range: std::ops::Range<usize>) -> Option<&[CardStack<C>]> {
         self.stacks.get(range)
     }
 
     /// Play provided card to the indicated stack, if it exists
-    pub fn play_card_to_stack(&mut self, card: CardSet, i: usize) -> Result<(), CardSet> {
+    pub fn play_card_to_stack(&mut self, card: C, i: usize) -> Result<(), C> {
         if i < self.stacks.len() {
             self.stacks[i].play_to(card)
         } else {
@@ -122,7 +135,7 @@ impl<CardSet: Card> Tableau<CardSet> {
     }
 
     /// Play all provided cards to the indicated stack, if it exists
-    pub fn play_cards_to_stack(&mut self, cards: &mut Vec<CardSet>, i: usize) -> Result<(), TableauError> {
+    pub fn play_cards_to_stack(&mut self, cards: &mut Vec<C>, i: usize) -> Result<(), TableauError> {
         if i < self.stacks.len() {
             self.stacks[i].play_cards(cards).map_err(|e| TableauError::CardStackError(e))
         } else {
@@ -131,7 +144,7 @@ impl<CardSet: Card> Tableau<CardSet> {
     }
 
     /// Play all provided cards to the currently hovered stack, if it exists
-    pub fn play_cards_to_hovered_stack(&mut self, cards: &mut Vec<CardSet>) -> Result<(), TableauError> {
+    pub fn play_cards_to_hovered_stack(&mut self, cards: &mut Vec<C>) -> Result<(), TableauError> {
         if let Some(i) = self.hovered_stack && i < self.stacks.len() {
             self.stacks[i].play_cards(cards).map_err(|e| TableauError::CardStackError(e))
         } else {
@@ -140,7 +153,7 @@ impl<CardSet: Card> Tableau<CardSet> {
     }
 
     /// Gather all cards from each stack into a single Vec and return them to the caller
-    pub fn gather_all(&mut self) -> Vec<CardSet> {
+    pub fn gather_all(&mut self) -> Vec<C> {
         let mut ret = vec![];
 
         for stack in self.stacks.iter_mut() {
@@ -185,7 +198,7 @@ impl<CardSet: Card> Tableau<CardSet> {
     }
 
     /// Borrow the card hovered in the currently hovered stack
-    pub fn get_hovered_card(&self) -> Option<&CardSet> {
+    pub fn get_hovered_card(&self) -> Option<&C> {
         if let Some(s) = self.hovered_stack {
             self.stacks[s].get_hovered_card()
         } else {
@@ -194,7 +207,7 @@ impl<CardSet: Card> Tableau<CardSet> {
     }
 
     /// Mutably borrow the card hovered in the currently hovered stack
-    pub fn get_hovered_card_mut(&mut self) -> Option<&mut CardSet> {
+    pub fn get_hovered_card_mut(&mut self) -> Option<&mut C> {
         if let Some(s) = self.hovered_stack {
             self.stacks[s].get_hovered_card_mut()
         } else {
@@ -203,21 +216,21 @@ impl<CardSet: Card> Tableau<CardSet> {
     }
 }
 
-impl<CardSet: Card> std::ops::Index<usize> for Tableau<CardSet> {
-    type Output = CardStack<CardSet>;
+impl<C: Card> std::ops::Index<usize> for Tableau<C> {
+    type Output = CardStack<C>;
     fn index(&self, index: usize) -> &Self::Output {
         &self.stacks[index]
     }
 }
 
-impl<CardSet: Card> std::ops::IndexMut<usize> for Tableau<CardSet> {
+impl<C: Card> std::ops::IndexMut<usize> for Tableau<C> {
     fn index_mut(&mut self, index: usize) -> &mut Self::Output {
         &mut self.stacks[index]
     }
 }
 
-impl<CardSet: Card> PlayTo<CardSet> for Tableau<CardSet> {
-    fn play_to(&mut self, card: CardSet) -> Result<(), CardSet> {
+impl<C: Card> PlayTo<C> for Tableau<C> {
+    fn play_to(&mut self, card: C) -> Result<(), C> {
         if let Some(c) = self.hovered_stack {
             self.stacks[c].play_to(card)
         } else {
@@ -226,7 +239,7 @@ impl<CardSet: Card> PlayTo<CardSet> for Tableau<CardSet> {
     }
 }
 
-impl<CardSet: Card> Debug for Tableau<CardSet> {
+impl<C: Card> Debug for Tableau<C> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         for s in &self.stacks {
             write!(f, "||")?;
@@ -236,7 +249,7 @@ impl<CardSet: Card> Debug for Tableau<CardSet> {
     }
 }
 
-impl<CardSet: Card> Display for Tableau<CardSet> {
+impl<C: Card> Display for Tableau<C> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         for s in &self.stacks {
             write!(f, "||")?;

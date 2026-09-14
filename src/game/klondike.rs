@@ -1,6 +1,8 @@
 use crate::{
     cards::{
-        FlippableCard, card_stack::CardStackError, deck::{Deck, DeckError, DeckToggle}, tableau::{Tableau, TableauError}
+        card_stack::CardStackError,
+        deck::{ Deck, DeckError, DeckToggle },
+        tableau::{ Tableau, TableauError },
     }, 
     lib_prelude::*,
     ui::*,
@@ -74,8 +76,8 @@ impl KlondikeGame {
     pub fn new() -> Self {
         KlondikeGame {
             talon: KlondikeDeck::new_standard_french_deck(true, true),
-            tableau: KlondikeTableau::new(StackVariant::HorizontalLtR, 7),
-            foundation: KlondikeFoundation::new(StackVariant::Flush, 4),
+            tableau: KlondikeTableau::new(CardStackVariant::HorizontalLtR, 7),
+            foundation: KlondikeFoundation::new(CardStackVariant::Flush, 4),
             hovered_element: KlondikeGameElement::Talon,
             selected_cards: (vec![], KlondikeGameElement::Talon, None),
             win: false,
@@ -83,7 +85,6 @@ impl KlondikeGame {
         }
     }
 
-    // 
     pub fn init(&mut self) {
         // Gather all cards from other regions into talon for shuffling and redistribution
         self.talon.replenish_default().expect("Talon is initialized with default discard");
@@ -98,14 +99,14 @@ impl KlondikeGame {
 
         // Draw cards from talon and play to tableau stacks 
         for i in 0..self.tableau.num_stacks() {
-            let mut face_up_card = self.talon.draw().unwrap();
+            let mut face_up_card = self.talon.draw_card().unwrap();
             face_up_card.flip_face_up();
             self.tableau.play_card_to_stack(face_up_card, i).expect("Talon should not be emptied in initial setup");
 
             for s in self.tableau.stacks_mut((i + 1)..7).expect("There are 7 stacks in the Tableau") {
                 s.play_to(
                     self.talon
-                        .draw()
+                        .draw_card()
                         .expect("Talon should not be emptied in initial setup"))
                     .expect("There should be no issues in initial deal to tableau");
             }
@@ -511,7 +512,9 @@ impl KlondikeGame {
         }
     }
 
+    // TODO
     fn win_screen(&mut self) {
+        let _ = event::read();
         self.init();
         self.win = false;
     }

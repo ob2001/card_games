@@ -1,5 +1,5 @@
 #[allow(unused)]
-use card_games::game::{klondike::KlondikeGame, canfield::Canfield};
+use card_games::game::{ klondike::KlondikeGame, canfield::Canfield };
 
 fn main() {
     if cfg!(debug_assertions) {
