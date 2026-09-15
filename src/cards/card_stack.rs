@@ -102,11 +102,11 @@ impl<C: Card> CardStack<C> {
                         if let Some(hovered_card_idx) = self.hovered_card && hovered_card_idx == i {
                             queue!(stdout,
                                 style::PrintStyledContent(format!("{}", card).on_dark_grey()),
-                                cursor::MoveRight(1)
+                                style::Print(" "),
                             )?;
                         } else {
                             card.draw_que(stdout)?;
-                            queue!(stdout, cursor::MoveRight(1))?;
+                            queue!(stdout, style::Print(" "))?;
                         }
                     }
                 } else {

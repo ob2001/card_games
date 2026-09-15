@@ -83,6 +83,9 @@ impl KlondikeGame {
     }
 
     pub fn init(&mut self) {
+        self.talon.set_num_display_deck(1);
+        self.talon.set_num_display_discard(3);
+
         // Gather all cards from other regions into talon for shuffling and redistribution
         self.talon.replenish_default().expect("Talon is initialized with default discard");
         self.talon.add_cards(&mut self.tableau.gather_all());

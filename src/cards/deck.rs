@@ -41,6 +41,9 @@ pub struct Deck<C: Card> {
 
     /// Only set if this element has no parent
     pos: Option<(u16, u16)>,
+    /// Sets how many cards to draw when drawing deck
+    num_display_deck: Option<usize>,
+    num_display_discard: Option<usize>,
 }
 
 impl<C: Card> Deck<C> {
@@ -52,6 +55,8 @@ impl<C: Card> Deck<C> {
             display_discard: false,
             hovered: None,
             pos,
+            num_display_deck: None,
+            num_display_discard: None
         }
     }
 
@@ -69,6 +74,30 @@ impl<C: Card> Deck<C> {
         stdout.flush()
     }
 
+    pub fn set_num_display_deck(&mut self, n: usize) {
+        self.num_display_deck = Some(n);
+    }
+
+    pub fn set_num_display_discard(&mut self, n: usize) {
+        self.num_display_discard = Some(n);
+    }
+
+    pub fn unset_num_display_deck(&mut self) {
+        self.num_display_deck = None;
+    }
+
+    pub fn unset_num_display_discard(&mut self) {
+        self.num_display_discard = None;
+    }
+
+    pub fn get_num_display_deck(&self) -> Option<usize> {
+        self.num_display_deck
+    }
+
+    pub fn get_num_display_discard(&self) -> Option<usize> {
+        self.num_display_discard
+    }
+
     pub fn set_pos(&mut self, pos: Option<(u16, u16)>) {
         self.pos = pos
     }
@@ -83,17 +112,29 @@ impl<C: Card> Deck<C> {
 
     pub fn draw_que(&self, stdout: &mut Stdout) -> Result<(), std::io::Error> {
         if self.deck.len() > 0 {
-            for c in self.deck.iter().take(self.deck.len().saturating_sub(1)) {
-                c.draw_que(stdout)?;
-                queue!(stdout, cursor::MoveRight(1))?;
-            }
+            if let Some(n) = self.num_display_deck && n < self.deck.len() {
+                for c in self.deck.iter().rev().take(n).rev().take(n.saturating_sub(1)) {
+                    c.draw_que(stdout)?;
+                    queue!(stdout, style::Print(" "))?;
+                }
 
-            if self.hovered == Some(DeckToggle::Deck) {
-                queue!(stdout, style::PrintStyledContent(format!("{}", self.deck.last().expect("Deck is guaranteed to have at least one card at this point")).on_dark_grey()))?;
+                if self.hovered == Some(DeckToggle::Deck) {
+                    queue!(stdout, style::PrintStyledContent(format!("{}", self.deck.last().expect("Deck is guaranteed to have at least one card at this point")).on_dark_grey()))?;
+                } else {
+                    self.deck.last().expect("Deck is guaranteed to have at least one card at this point").draw_que(stdout)?;
+                }
             } else {
-                self.deck.last().expect("Deck is guaranteed to have at least one card at this point").draw_que(stdout)?;
+                for c in self.deck.iter().take(self.deck.len().saturating_sub(1)) {
+                    c.draw_que(stdout)?;
+                    queue!(stdout, style::Print(" "))?;
+                }
+                
+                if self.hovered == Some(DeckToggle::Deck) {
+                    queue!(stdout, style::PrintStyledContent(format!("{}", self.deck.last().expect("Deck is guaranteed to have at least one card at this point")).on_dark_grey()))?;
+                } else {
+                    self.deck.last().expect("Deck is guaranteed to have at least one card at this point").draw_que(stdout)?;
+                }
             }
-
             queue!(stdout, terminal::Clear(terminal::ClearType::UntilNewLine))?;
         } else if self.hovered == Some(DeckToggle::Deck) {
             queue!(stdout, style::PrintStyledContent("  ".on_dark_grey()), terminal::Clear(terminal::ClearType::UntilNewLine))?;
@@ -102,18 +143,32 @@ impl<C: Card> Deck<C> {
         }
 
         if self.display_discard {
-            if let Some(dc) = &self.default_discard {
-                if dc.len() > 0 {
-                    queue!(stdout, cursor::MoveToNextLine(1), style::Print("=> "))?;
-                    for c in dc.iter().take(dc.len().saturating_sub(1)) {
-                        c.draw_que(stdout)?;
-                        queue!(stdout, cursor::MoveRight(1))?;
-                    }
+            if let Some(discard) = &self.default_discard {
+                if discard.len() > 0 {
+                    if let Some(n) = self.num_display_discard && n < discard.len() {
+                        queue!(stdout, cursor::MoveToNextLine(1), style::Print("=> "))?;
+                        for card in discard.iter().rev().take(n).rev().take(n.saturating_sub(1)) {
+                            card.draw_que(stdout)?;
+                            queue!(stdout, style::Print(" "))?;
+                        }
 
-                    if self.hovered == Some(DeckToggle::Discard) {
-                        queue!(stdout, style::PrintStyledContent(format!("{}", dc.last().expect("Discard is guaranteed to have at least one card at this point")).on_dark_grey()))?;
+                        if self.hovered == Some(DeckToggle::Discard) {
+                            queue!(stdout, style::PrintStyledContent(format!("{}", discard.last().expect("Discard is guaranteed to have at least one card at this point")).on_dark_grey()))?;
+                        } else {
+                            discard.last().expect("Discard is guaranteed to have at least one card at this point").draw_que(stdout)?;
+                        }
                     } else {
-                        dc.last().expect("Discard is guaranteed to have at least one card at this point").draw_que(stdout)?;
+                        queue!(stdout, cursor::MoveToNextLine(1), style::Print("=> "))?;
+                        for c in discard.iter().take(discard.len().saturating_sub(1)) {
+                            c.draw_que(stdout)?;
+                            queue!(stdout, style::Print(" "))?;
+                        }
+
+                        if self.hovered == Some(DeckToggle::Discard) {
+                            queue!(stdout, style::PrintStyledContent(format!("{}", discard.last().expect("Discard is guaranteed to have at least one card at this point")).on_dark_grey()))?;
+                        } else {
+                            discard.last().expect("Discard is guaranteed to have at least one card at this point").draw_que(stdout)?;
+                        }
                     }
 
                     queue!(stdout, terminal::Clear(terminal::ClearType::UntilNewLine))?;
@@ -401,6 +456,8 @@ impl Deck<FlippableCard<FrenchCard>> {
             display_discard,
             hovered: None,
             pos,
+            num_display_deck: None,
+            num_display_discard: None,
         }
     }
 
@@ -440,6 +497,8 @@ impl Deck<FlippableCard<FrenchCard>> {
             display_discard,
             hovered: None,
             pos: None,
+            num_display_deck: None,
+            num_display_discard: None,
         }
     }
 }

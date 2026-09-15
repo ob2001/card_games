@@ -548,7 +548,9 @@ pub mod five_crowns_card {
 
 /// A module for flippable cards
 pub mod flippable_card {
-    use super::{ Card, Display, Stdout, queue, style };
+    use crossterm::style::Stylize;
+
+use super::{ Card, Display, Stdout, queue, style };
     /// A struct which adds functionality for concealing and revealing the card contained within it.
     #[derive(Clone, Debug)]
     pub struct FlippableCard<C: Card>(C, pub bool);
@@ -609,7 +611,7 @@ pub mod flippable_card {
             if self.1 {
                 self.0.draw_que(stdout)
             } else {
-                queue!(stdout, style::Print("XX"))
+                queue!(stdout, style::PrintStyledContent("<>".on(style::Color::DarkBlue).with(style::Color::Black)))
             }
         }
 
@@ -626,7 +628,7 @@ pub mod flippable_card {
             if self.1 {
                 write!(f, "{}", self.0)
             } else {
-                write!(f, "XX")
+                write!(f, "<>")
             }
         }
     }
