@@ -143,10 +143,10 @@ impl<C: Card> Deck<C> {
         }
 
         if self.display_discard {
+            queue!(stdout, cursor::MoveToNextLine(1), style::Print("=> "))?;
             if let Some(discard) = &self.default_discard {
                 if discard.len() > 0 {
                     if let Some(n) = self.num_display_discard && n < discard.len() {
-                        queue!(stdout, cursor::MoveToNextLine(1), style::Print("=> "))?;
                         for card in discard.iter().rev().take(n).rev().take(n.saturating_sub(1)) {
                             card.draw_que(stdout)?;
                             queue!(stdout, style::Print(" "))?;
@@ -158,7 +158,6 @@ impl<C: Card> Deck<C> {
                             discard.last().expect("Discard is guaranteed to have at least one card at this point").draw_que(stdout)?;
                         }
                     } else {
-                        queue!(stdout, cursor::MoveToNextLine(1), style::Print("=> "))?;
                         for c in discard.iter().take(discard.len().saturating_sub(1)) {
                             c.draw_que(stdout)?;
                             queue!(stdout, style::Print(" "))?;
@@ -170,15 +169,12 @@ impl<C: Card> Deck<C> {
                             discard.last().expect("Discard is guaranteed to have at least one card at this point").draw_que(stdout)?;
                         }
                     }
-
-                    queue!(stdout, terminal::Clear(terminal::ClearType::UntilNewLine))?;
-                }
-            } else {
-                if self.hovered == Some(DeckToggle::Discard) {
-                    queue!(stdout, style::PrintStyledContent("  ".on_dark_grey()), terminal::Clear(terminal::ClearType::UntilNewLine))?;
                 } else {
-                    queue!(stdout, terminal::Clear(terminal::ClearType::UntilNewLine))?;
+                    if self.hovered == Some(DeckToggle::Discard) {
+                        queue!(stdout, style::PrintStyledContent("  ".on_dark_grey()))?;
+                    }
                 }
+                queue!(stdout, terminal::Clear(terminal::ClearType::UntilNewLine))?;
             }
         }
 
