@@ -8,6 +8,8 @@ pub struct Tableau<C: Card> {
     stacks: Vec<CardStack<C>>,
     variant: TableauVariant,
     hovered_stack: Option<usize>,
+
+    /// Only set if this element has no parent
     pos: Option<(u16, u16)>,
 }
 
@@ -31,12 +33,12 @@ pub enum TableauError {
 
 impl<C: Card> Tableau<C> {
     /// Return a new Tableau with `n_stacks` empty stacks of variant `stack_variant`
-    pub fn new(stack_variant: CardStackVariant, n_stacks: usize) -> Self {
+    pub fn new(tableau_variant: TableauVariant, stack_variant: CardStackVariant, n_stacks: usize, pos: Option<(u16, u16)>) -> Self {
         Tableau {
-            stacks: vec![CardStack::new(stack_variant, None); n_stacks],
-            variant: TableauVariant::HorizontalLtR,
+            stacks: vec![CardStack::new(stack_variant, None, None); n_stacks],
+            variant: tableau_variant,
             hovered_stack: None,
-            pos: None,
+            pos,
         }
     }
 
@@ -45,9 +47,35 @@ impl<C: Card> Tableau<C> {
         stdout.flush()
     }
 
-    // TODO
+    pub fn set_pos(&mut self, pos: Option<(u16, u16)>) {
+        self.pos = pos
+    }
+
+    pub fn get_pos(&self) -> Option<(u16, u16)> {
+        self.pos
+    }
+
+    pub fn get_pos_mut(&mut self) -> Option<&mut (u16, u16)> {
+        self.pos.as_mut()
+    }
+    
     pub fn draw_que(&self, stdout: &mut Stdout) -> Result<(), std::io::Error> {
-        todo!();
+        let init_pos = if let Some(pos) = self.pos { pos } else { cursor::position()? };
+        queue!(stdout, cursor::MoveTo(init_pos.0, init_pos.1))?;
+
+        match &self.variant {
+            TableauVariant::VerticalTtB => {
+                if self.stacks.len() > 0 {
+                    for s in &self.stacks {
+                        queue!(stdout, style::Print("|| "))?;
+                        s.draw_que(stdout)?;
+                        queue!(stdout, terminal::Clear(terminal::ClearType::UntilNewLine), cursor::MoveDown(1), cursor::MoveToColumn(init_pos.1))?;
+                    }
+                }
+            },
+            var => { todo!("Drawing a {:?} not yet implemented", var) }
+        }
+        Ok(())
     }
 
     /// Set the display variant of the Tableau
@@ -192,8 +220,8 @@ impl<C: Card> Tableau<C> {
     /// Unhover all stacks, then only hover the currently hovered stack
     pub fn update_hovered_stack(&mut self) {
         for s in &mut self.stacks { s.unhover(); }
-        if let Some(c) = self.hovered_stack {
-            self.stacks[c].hover();
+        if let Some(s) = self.hovered_stack {
+            self.stacks[s].hover();
         }
     }
 

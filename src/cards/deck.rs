@@ -1,4 +1,5 @@
 use std::io::{ Stdout, Write };
+
 use crate::{
     cards::{ FlippableCard, french_card::FrenchCard },
     lib_prelude::*,
@@ -37,25 +38,27 @@ pub struct Deck<C: Card> {
     default_discard: Option<Vec<C>>,
     display_discard: bool,
     hovered: Option<DeckToggle>,
+
+    /// Only set if this element has no parent
     pos: Option<(u16, u16)>,
 }
 
 impl<C: Card> Deck<C> {
     /// Create a new deck containing no cards
-    pub fn new_empty() -> Self {
+    pub fn new_empty(pos: Option<(u16, u16)>) -> Self {
         Deck {
             deck: vec![],
             default_discard: None,
             display_discard: false,
             hovered: None,
-            pos: None,
+            pos,
         }
     }
 
     /// Create a new empty deck with a default discard pile,
     /// and with an option to either display or hide the discard pile
-    pub fn new_with_default_discard(discard: Vec<C>, display_discard: bool) -> Self {
-        let mut ret = Self::new_empty();
+    pub fn new_with_default_discard(discard: Vec<C>, display_discard: bool, pos: Option<(u16, u16)>) -> Self {
+        let mut ret = Self::new_empty(pos);
         ret.default_discard = Some(discard);
         ret.display_discard = display_discard;
         ret
@@ -66,8 +69,66 @@ impl<C: Card> Deck<C> {
         stdout.flush()
     }
 
+    pub fn set_pos(&mut self, pos: Option<(u16, u16)>) {
+        self.pos = pos
+    }
+
+    pub fn get_pos(&self) -> Option<(u16, u16)> {
+        self.pos
+    }
+
+    pub fn get_pos_mut(&mut self) -> Option<&mut (u16, u16)> {
+        self.pos.as_mut()
+    }
+
     pub fn draw_que(&self, stdout: &mut Stdout) -> Result<(), std::io::Error> {
-        todo!();
+        let pos = self.pos.unwrap_or(cursor::position()?);
+        queue!(stdout, cursor::MoveTo(pos.0, pos.1))?;
+
+        if self.deck.len() > 0 {
+            for c in self.deck.iter().take(self.deck.len().saturating_sub(1)) {
+                c.draw_que(stdout)?;
+                queue!(stdout, cursor::MoveRight(1))?;
+            }
+
+            if self.hovered == Some(DeckToggle::Deck) {
+                queue!(stdout, style::PrintStyledContent(format!("{}", self.deck.last().expect("Deck is guaranteed to have at least one card at this point")).on_dark_grey()))?;
+            } else {
+                self.deck.last().expect("Deck is guaranteed to have at least one card at this point").draw_que(stdout)?;
+            }
+
+            queue!(stdout, terminal::Clear(terminal::ClearType::UntilNewLine))?;
+        } else if self.hovered == Some(DeckToggle::Deck) {
+            queue!(stdout, style::PrintStyledContent("  ".on_dark_grey()), terminal::Clear(terminal::ClearType::UntilNewLine))?;
+        }
+
+        if self.display_discard {
+            if let Some(dc) = &self.default_discard {
+                if dc.len() > 0 {
+                    queue!(stdout, cursor::MoveTo(pos.0, pos.1 + 1), style::Print("=> "))?;
+                    for c in dc.iter().take(dc.len().saturating_sub(1)) {
+                        c.draw_que(stdout)?;
+                        queue!(stdout, cursor::MoveRight(1))?;
+                    }
+
+                    if self.hovered == Some(DeckToggle::Discard) {
+                        queue!(stdout, style::PrintStyledContent(format!("{}", dc.last().expect("Discard is guaranteed to have at least one card at this point")).on_dark_grey()))?;
+                    } else {
+                        dc.last().expect("Discard is guaranteed to have at least one card at this point").draw_que(stdout)?;
+                    }
+
+                    queue!(stdout, terminal::Clear(terminal::ClearType::UntilNewLine))?;
+                }
+            } else {
+                if self.hovered == Some(DeckToggle::Discard) {
+                    queue!(stdout, style::PrintStyledContent("  ".on_dark_grey()), terminal::Clear(terminal::ClearType::UntilNewLine))?;
+                } else {
+                    queue!(stdout, terminal::Clear(terminal::ClearType::UntilNewLine))?;
+                }
+            }
+        }
+
+        Ok(())
     }
 
     /// Draw a single card from the top (end) of the deck and return it
@@ -169,12 +230,12 @@ impl<C: Card> Deck<C> {
     }
 
     /// Remove the entire contents of the deck and return them to the caller
-    pub fn inner_deck(&mut self) -> Vec<C> {
+    pub fn get_inner_deck(&mut self) -> Vec<C> {
         self.deck.split_off(0)
     }
 
     /// Borrow the deck
-    pub fn view_inner_deck(&self) -> &Vec<C> {
+    pub fn inner_deck(&self) -> &Vec<C> {
         &self.deck
     }
 
@@ -306,7 +367,7 @@ impl<C: Card> std::iter::Iterator for Deck<C> {
 
 impl Deck<FlippableCard<FrenchCard>> {
     /// Generate and return a standard 52-card flippable French-style deck (no Jokers)
-    pub fn new_standard_french_deck(default_discard: bool, display_discard: bool) -> Deck<FlippableCard<FrenchCard>> {
+    pub fn new_standard_french_deck(default_discard: bool, display_discard: bool, pos: Option<(u16, u16)>) -> Deck<FlippableCard<FrenchCard>> {
         use crate::cards::FlippableCard;
         use crate::cards::french_card::FrenchRank::*;
         use FrenchCard::*;
@@ -340,7 +401,7 @@ impl Deck<FlippableCard<FrenchCard>> {
             default_discard,
             display_discard,
             hovered: None,
-            pos: None
+            pos,
         }
     }
 

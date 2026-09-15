@@ -15,6 +15,11 @@ pub trait Card: Debug + Display + Clone {
         self.draw_que(stdout)?;
         stdout.flush()
     }
+
+    /// Returns the length of the string representation of the card
+    fn str_len(&self) -> usize {
+        format!("{}", self).chars().count()
+    }
 }
 
 pub trait Rank: Debug + Clone + Copy + PartialEq + Eq + PartialOrd + Ord + Display {
@@ -38,6 +43,37 @@ pub mod french_card {
         Joker,
     }
 
+    impl FrenchCard {
+        pub fn rank(&self) -> Option<FrenchRank> {
+            use FrenchCard::*;
+            match self {
+                &Spades(r) | &Hearts(r) | &Clubs(r) | &Diamonds(r) => Some(r),
+                Joker => None,
+            }
+        }
+
+        pub fn suit_equals(&self, other: &FrenchCard) -> bool {
+            match (self, other) {
+                (Self::Spades(_), Self::Spades(_)) | (Self::Hearts(_), Self::Hearts(_)) | (Self::Clubs(_), Self::Clubs(_)) | (Self::Diamonds(_), Self::Diamonds(_)) => true,
+                _ => false
+            }
+        }
+
+        pub fn is_black(&self) -> bool {
+            match self {
+                Self::Spades(_) | Self::Clubs(_) | Self::Joker => true,
+                _ => false,
+            }
+        }
+
+        pub fn is_red(&self) -> bool {
+            match self {
+                Self::Hearts(_) | Self::Diamonds(_) | Self::Joker => true,
+                _ => false,
+            }
+        }
+    }
+
     impl Card for FrenchCard {
         fn draw_que(&self, stdout: &mut Stdout) -> Result<(), std::io::Error> {
             style::PrintStyledContent("H".with(style::Color::Red));
@@ -47,6 +83,18 @@ pub mod french_card {
                 Self::Clubs(r) => queue!(stdout, style::Print(format!("{}♣", r))),
                 Self::Diamonds(r) => queue!(stdout, style::PrintStyledContent(format!("{}♦", r).with(Color::Red))),
                 Self::Joker => queue!(stdout, style::Print("Jk")),
+            }
+        }
+
+        fn str_len(&self) -> usize {
+            match self {
+                &Self::Spades(r) | &Self::Hearts(r) | &Self::Clubs(r) | &Self::Diamonds(r) => {
+                    match r {
+                        FrenchRank::Pip(10) => 3,
+                        _ => 2
+                    }
+                },
+                _ => 2,
             }
         }
     }
@@ -562,6 +610,13 @@ pub mod flippable_card {
                 self.0.draw_que(stdout)
             } else {
                 queue!(stdout, style::Print("XX"))
+            }
+        }
+
+        fn str_len(&self) -> usize {
+            match self.1 {
+                false => 2,
+                true => self.0.str_len(),
             }
         }
     }

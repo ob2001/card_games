@@ -9,3 +9,4 @@ Klondike Checklist
   - [x] Implement Foundation rules
 - [x] Fix crash when playing King to empty Tableau stack
 - [ ] Prettify UI
+  - [ ] Fix terminal drawing issues

@@ -1,9 +1,12 @@
 pub use std::io::{ Write, Stdout };
+use crossterm::{ terminal::{ enable_raw_mode, disable_raw_mode }, };
 use crate::lib_prelude::*;
 
 pub fn enter_game_screen(stdout: &mut Stdout) -> Result<(), std::io::Error> {
+    enable_raw_mode()?;
     execute!(stdout,
         terminal::EnterAlternateScreen,
+        terminal::DisableLineWrap,
         cursor::Hide,
     )
 }
@@ -11,8 +14,10 @@ pub fn enter_game_screen(stdout: &mut Stdout) -> Result<(), std::io::Error> {
 pub fn leave_game_screen(stdout: &mut Stdout) -> Result<(), std::io::Error> {
     execute!(stdout,
         cursor::Show,
-        terminal::LeaveAlternateScreen
-    )
+        terminal::EnableLineWrap,
+        terminal::LeaveAlternateScreen,
+    )?;
+    disable_raw_mode()
 }
 
 pub fn clear_screen(stdout: &mut Stdout) -> Result<(), std::io::Error> {

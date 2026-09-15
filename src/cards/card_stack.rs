@@ -15,6 +15,8 @@ pub struct CardStack<C: Card> {
     variant: CardStackVariant,
     lim: Option<usize>,
     hovered_card: Option<usize>,
+    
+    /// Only set if this element has no parent
     pos: Option<(u16, u16)>,
 }
 
@@ -38,13 +40,13 @@ pub enum CardStackError {
 
 impl<C: Card> CardStack<C> {
     /// Return a new, empty, unhovered, unlimited CardStack
-    pub fn new(variant: CardStackVariant, lim: Option<usize>) -> Self {
+    pub fn new(variant: CardStackVariant, lim: Option<usize>, pos: Option<(u16, u16)>) -> Self {
         CardStack {
             stack: vec![],
             variant,
             lim,
             hovered_card: None,
-            pos: None
+            pos
         }
     }
 
@@ -59,6 +61,18 @@ impl<C: Card> CardStack<C> {
         }
     }
 
+    pub fn set_pos(&mut self, pos: Option<(u16, u16)>) {
+        self.pos = pos;
+    }
+
+    pub fn get_pos(&self) -> Option<(u16, u16)> {
+        self.pos
+    }
+
+    pub fn get_pos_mut(&mut self) -> Option<&mut (u16, u16)> {
+        self.pos.as_mut()
+    }
+
     pub fn draw_imm(&self, stdout: &mut Stdout) -> Result<(), std::io::Error> {
         self.draw_que(stdout)?;
         stdout.flush()
@@ -67,39 +81,70 @@ impl<C: Card> CardStack<C> {
     // TODO: Finish the Horizontal LtR arm
     pub fn draw_que(&self, stdout: &mut Stdout) -> Result<(), std::io::Error> {
         let init_pos = if let Some((x, y)) = self.pos { (x, y) } else { cursor::position()? };
+        queue!(stdout, cursor::MoveTo(init_pos.0, init_pos.1))?;
 
-        match self.variant {
+        match &self.variant {
             CardStackVariant::Flush => {
-                if self.hovered_card != None {
-                    queue!(stdout,
-                        cursor::MoveTo(init_pos.0, init_pos.1),
-                        style::PrintStyledContent(
-                            self.stack.last().map_or(String::from("  "), |c| format!("{}", c)).on_grey()
-                        )
-                    )?
+                if self.stack.len() > 0 {
+                    if self.hovered_card != None {
+                        queue!(stdout, style::PrintStyledContent(format!("{}", self.stack.last().unwrap()).on_dark_grey()))
+                    } else {
+                        queue!(stdout, style::Print(format!("{}", self.stack.last().unwrap())))
+                    }
                 } else {
-                    queue!(stdout,
-                        cursor::MoveTo(init_pos.0, init_pos.1),
-                        style::Print(
-                            self.stack.last().map_or(String::from("  "), |c| format!("{}", c))
-                        )
-                    )?
+                    if self.hovered_card != None {
+                        queue!(stdout, style::PrintStyledContent("  ".on_dark_grey()))
+                    } else {
+                        queue!(stdout, style::Print("  "))
+                    }
                 }
-            }
-            CardStackVariant::HorizontalLtR => {
-                todo!("Drawing a Horizontal LtR Card Stack Variant not yet implemented")
             },
-            CardStackVariant::HorizontalRtL => { todo!("Drawing a Horizontal RtL Card Stack Variant not yet implemented") },
-            CardStackVariant::VerticalBtT => { todo!("Drawing a Vertical BtT Card Stack Variant not yet implemented") },
-            CardStackVariant::VerticalTtB => { todo!("Drawing a Vertical TtB Card Stack Variant not yet implemented") },
+            CardStackVariant::HorizontalLtR => {
+                if self.stack.len() == 0 {
+                    if let Some(_) = self.hovered_card {
+                        queue!(stdout, style::PrintStyledContent("  ".on_dark_grey()))?;
+                    } else {
+                        queue!(stdout, style::Print("  "))?;
+                    }
+                } else {
+                    for (i, c) in self.stack.iter().enumerate() {
+                        if let Some(h_c) = self.hovered_card && h_c == i {
+                            queue!(stdout, style::PrintStyledContent(format!("{}", c).on_dark_grey()))?;
+                            queue!(stdout, cursor::MoveRight(1))?;
+                        } else {
+                            c.draw_que(stdout)?;
+                            queue!(stdout, cursor::MoveRight(1))?;
+                        }
+                    }
+                }
+            
+                if self.pos.is_some() {
+                    queue!(stdout, terminal::Clear(terminal::ClearType::UntilNewLine))
+                } else {
+                    Ok(())
+                }
+            },
+            var => todo!("Drawing a {:?} not yet implemented", var),
         }
-
-        Ok(())
     }
 
     /// Return the current length of the CardStack
     pub fn len(&self) -> usize {
         self.stack.len()
+    }
+
+    pub fn widest_card_str(&self) -> usize {
+        self.stack.iter().fold(0, |acc, c| acc.max(c.str_len()))
+    }
+
+    pub fn str_len(&self) -> usize {
+        match self.variant {
+            CardStackVariant::Flush => { self.stack.last().map_or(0, |c| c.str_len()) }
+            CardStackVariant::HorizontalLtR => { format!("{}", self).len() },
+            CardStackVariant::HorizontalRtL => { todo!() },
+            CardStackVariant::VerticalTtB => { todo!() },
+            CardStackVariant::VerticalBtT => { todo!() },
+        }
     }
 
     /// Collect all cards in the stack and return them to the caller
