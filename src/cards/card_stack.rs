@@ -80,9 +80,6 @@ impl<C: Card> CardStack<C> {
 
     // TODO: Finish the Horizontal LtR arm
     pub fn draw_que(&self, stdout: &mut Stdout) -> Result<(), std::io::Error> {
-        let init_pos = if let Some((x, y)) = self.pos { (x, y) } else { cursor::position()? };
-        queue!(stdout, cursor::MoveTo(init_pos.0, init_pos.1))?;
-
         match &self.variant {
             CardStackVariant::Flush => {
                 if self.stack.len() > 0 {
@@ -100,21 +97,23 @@ impl<C: Card> CardStack<C> {
                 }
             },
             CardStackVariant::HorizontalLtR => {
-                if self.stack.len() == 0 {
+                if self.stack.len() > 0 {
+                    for (i, card) in self.stack.iter().enumerate() {
+                        if let Some(hovered_card_idx) = self.hovered_card && hovered_card_idx == i {
+                            queue!(stdout,
+                                style::PrintStyledContent(format!("{}", card).on_dark_grey()),
+                                cursor::MoveRight(1)
+                            )?;
+                        } else {
+                            card.draw_que(stdout)?;
+                            queue!(stdout, cursor::MoveRight(1))?;
+                        }
+                    }
+                } else {
                     if let Some(_) = self.hovered_card {
                         queue!(stdout, style::PrintStyledContent("  ".on_dark_grey()))?;
                     } else {
                         queue!(stdout, style::Print("  "))?;
-                    }
-                } else {
-                    for (i, c) in self.stack.iter().enumerate() {
-                        if let Some(h_c) = self.hovered_card && h_c == i {
-                            queue!(stdout, style::PrintStyledContent(format!("{}", c).on_dark_grey()))?;
-                            queue!(stdout, cursor::MoveRight(1))?;
-                        } else {
-                            c.draw_que(stdout)?;
-                            queue!(stdout, cursor::MoveRight(1))?;
-                        }
                     }
                 }
             

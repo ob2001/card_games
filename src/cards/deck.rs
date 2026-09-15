@@ -82,9 +82,6 @@ impl<C: Card> Deck<C> {
     }
 
     pub fn draw_que(&self, stdout: &mut Stdout) -> Result<(), std::io::Error> {
-        let pos = self.pos.unwrap_or(cursor::position()?);
-        queue!(stdout, cursor::MoveTo(pos.0, pos.1))?;
-
         if self.deck.len() > 0 {
             for c in self.deck.iter().take(self.deck.len().saturating_sub(1)) {
                 c.draw_que(stdout)?;
@@ -100,12 +97,14 @@ impl<C: Card> Deck<C> {
             queue!(stdout, terminal::Clear(terminal::ClearType::UntilNewLine))?;
         } else if self.hovered == Some(DeckToggle::Deck) {
             queue!(stdout, style::PrintStyledContent("  ".on_dark_grey()), terminal::Clear(terminal::ClearType::UntilNewLine))?;
+        } else {
+            queue!(stdout, terminal::Clear(terminal::ClearType::UntilNewLine))?;
         }
 
         if self.display_discard {
             if let Some(dc) = &self.default_discard {
                 if dc.len() > 0 {
-                    queue!(stdout, cursor::MoveTo(pos.0, pos.1 + 1), style::Print("=> "))?;
+                    queue!(stdout, cursor::MoveToNextLine(1), style::Print("=> "))?;
                     for c in dc.iter().take(dc.len().saturating_sub(1)) {
                         c.draw_que(stdout)?;
                         queue!(stdout, cursor::MoveRight(1))?;

@@ -60,20 +60,22 @@ impl<C: Card> Tableau<C> {
     }
     
     pub fn draw_que(&self, stdout: &mut Stdout) -> Result<(), std::io::Error> {
-        let init_pos = if let Some(pos) = self.pos { pos } else { cursor::position()? };
-        queue!(stdout, cursor::MoveTo(init_pos.0, init_pos.1))?;
-
-        match &self.variant {
-            TableauVariant::VerticalTtB => {
-                if self.stacks.len() > 0 {
-                    for s in &self.stacks {
-                        queue!(stdout, style::Print("|| "))?;
-                        s.draw_que(stdout)?;
-                        queue!(stdout, terminal::Clear(terminal::ClearType::UntilNewLine), cursor::MoveDown(1), cursor::MoveToColumn(init_pos.1))?;
+        if self.stacks.len() > 0 {
+            match &self.variant {
+                TableauVariant::VerticalTtB => {
+                    if self.stacks.len() > 0 {
+                        for s in &self.stacks {
+                            queue!(stdout, style::Print("||"))?;
+                            s.draw_que(stdout)?;
+                            queue!(stdout,
+                                terminal::Clear(terminal::ClearType::UntilNewLine),
+                                cursor::MoveToNextLine(1)
+                            )?;
+                        }
                     }
-                }
-            },
-            var => { todo!("Drawing a {:?} not yet implemented", var) }
+                },
+                var => { todo!("Drawing a {:?} not yet implemented", var) }
+            }
         }
         Ok(())
     }

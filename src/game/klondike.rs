@@ -72,9 +72,9 @@ impl From<&KlondikeGame> for KlondikeGameWeak {
 impl KlondikeGame {
     pub fn new() -> Self {
         KlondikeGame {
-            talon: KlondikeDeck::new_standard_french_deck(true, true, Some((0, 0))),
-            tableau: KlondikeTableau::new(TableauVariant::VerticalTtB, CardStackVariant::HorizontalLtR, 7, Some((0, 3))),
-            foundation: KlondikeFoundation::new(TableauVariant::VerticalTtB, CardStackVariant::Flush, 4, Some((0, 11))),
+            talon: KlondikeDeck::new_standard_french_deck(true, true, Some((0, 12))),
+            tableau: KlondikeTableau::new(TableauVariant::VerticalTtB, CardStackVariant::HorizontalLtR, 7, Some((0, 15))),
+            foundation: KlondikeFoundation::new(TableauVariant::VerticalTtB, CardStackVariant::Flush, 4, Some((0, 23))),
             hovered_element: KlondikeGameElement::Talon,
             selected_cards: (vec![], KlondikeGameElement::Talon, None),
             win: false,
@@ -111,7 +111,7 @@ impl KlondikeGame {
         }
 
         // Deal first 3 cards from talon
-        self.draw_talon().expect("Talon should not be emptied in initial setup");
+        self.draw_from_talon().expect("Talon should not be emptied in initial setup");
 
         // Deselect all elements 
         self.talon.unhover();
@@ -136,14 +136,42 @@ impl KlondikeGame {
     /// Queue drawing the game to the passed `stdout`.
     /// Drawing will be performed the next time `stdout` is `flush()`ed
     pub fn draw_que(&self, stdout: &mut Stdout) -> Result<(), std::io::Error> {
-        // Draw each dedicated game element using its designating draw() function
+        let (w, _h) = terminal::size().unwrap_or((50, 50));
+
+        // Draw game instructions
+        queue!(stdout,
+            cursor::MoveTo(0, 0),
+            style::Print(format!("{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n",
+                crate::ui::format_box_message("Keybindings", w as usize, true),
+                    " <Esc> - Exit game",
+                    " <Tab> - Cycle game element selection [Talon > Tableau > Foundation]",
+                    " <Up>/<Down> - Toggle Talon draw/play or select Tablueau/Foundation column",
+                    " <Left>/<Right> - Select card in Tableau column",
+                    " <z> - Deselect current selection",
+                    " <Ctrl> + <z> - Undo move",
+                    " <n> - Start new game",
+                    "-".repeat(w as usize))
+            ),
+        )?;
+        
+        // Draw each dedicated game element using its designated draw() function
         self.talon.draw_que(stdout)?;
+
+        queue!(stdout, cursor::MoveToNextLine(2))?;
+
         self.tableau.draw_que(stdout)?;
+
+        queue!(stdout, cursor::MoveToNextLine(1))?;
+
         self.foundation.draw_que(stdout)?;
 
-        // Draw the Current selection vector
-        queue!(stdout, cursor::MoveToColumn(0), cursor::MoveDown(2), style::Print("Current selection: "))?;
-        for c in &self.selected_cards.0 {
+        // Draw the selected cards
+        queue!(stdout, cursor::MoveToColumn(0), cursor::MoveDown(0), style::Print("Current selection: "))?;
+        for c in self.selected_cards.0.iter().take(self.selected_cards.0.len().saturating_sub(1)) {
+            c.draw_que(stdout)?;
+            queue!(stdout, cursor::MoveRight(1))?;
+        }
+        if let Some(c) = self.selected_cards.0.last() {
             c.draw_que(stdout)?;
         }
         queue!(stdout, terminal::Clear(terminal::ClearType::UntilNewLine))?;
@@ -152,7 +180,7 @@ impl KlondikeGame {
     }
 
     /// Draw 3 cards from talon into talon discard
-    pub fn draw_talon(&mut self) -> Result<(), KlondikeGameError> {
+    pub fn draw_from_talon(&mut self) -> Result<(), KlondikeGameError> {
         if self.talon.inner_deck().len() > 0 {
             for _ in 0..3 {
                 self.talon.top_deck_discard_default_flip().map_err(|e| KlondikeGameError::TalonError(e))?;
@@ -163,7 +191,7 @@ impl KlondikeGame {
             if self.talon.inner_deck().len() > 0 {
                 self.talon.all_face_down();
                 self.talon.reverse();
-                self.draw_talon()
+                self.draw_from_talon()
             } else {
                 Ok(())
             }
@@ -267,7 +295,7 @@ impl KlondikeGame {
                         self.replace_selected_cards().expect("Replacing a non-empty curr_selection should be infallible");
                     }
 
-                    self.draw_talon()
+                    self.draw_from_talon()
                 } 
                 // Player is attempting to take the top card from the Talon
                  else if self.selected_cards.0.is_empty() {
