@@ -77,7 +77,7 @@ impl std::fmt::Debug for Canfield {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         write!(
             f,
-            "{}\n\n{}\n\n{:?}\n{:?}",
+            "{:?}\n\n{:?}\n\n{:?}\n{:?}",
             self.talon, self.stock, self.tableau, self.foundation
         )
     }

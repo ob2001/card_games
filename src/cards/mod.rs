@@ -1,4 +1,5 @@
-use std::io::{ Stdout, Write };
+use std::{ fmt::Display, io::{ Stdout, Write } };
+use style::Stylize;
 use crate::lib_prelude::*;
 
 pub mod card_stack;
@@ -549,8 +550,7 @@ pub mod five_crowns_card {
 /// A module for flippable cards
 pub mod flippable_card {
     use crossterm::style::Stylize;
-
-use super::{ Card, Display, Stdout, queue, style };
+    use super::{ Card, Display, Stdout, queue, style };
     /// A struct which adds functionality for concealing and revealing the card contained within it.
     #[derive(Clone, Debug)]
     pub struct FlippableCard<C: Card>(C, pub bool);

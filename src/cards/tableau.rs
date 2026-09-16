@@ -59,6 +59,7 @@ impl<C: Card> Tableau<C> {
         self.pos.as_mut()
     }
     
+    // TODO: Finish other Tableau Variant arms
     pub fn draw_que(&self, stdout: &mut Stdout) -> Result<(), std::io::Error> {
         if self.stacks.len() > 0 {
             match &self.variant {
@@ -158,7 +159,7 @@ impl<C: Card> Tableau<C> {
     /// Play provided card to the indicated stack, if it exists
     pub fn play_card_to_stack(&mut self, card: C, i: usize) -> Result<(), C> {
         if i < self.stacks.len() {
-            self.stacks[i].play_to(card)
+            self.stacks[i].play_card_to(card)
         } else {
             Err(card)
         }
@@ -167,7 +168,7 @@ impl<C: Card> Tableau<C> {
     /// Play all provided cards to the indicated stack, if it exists
     pub fn play_cards_to_stack(&mut self, cards: &mut Vec<C>, i: usize) -> Result<(), TableauError> {
         if i < self.stacks.len() {
-            self.stacks[i].play_cards(cards).map_err(|e| TableauError::CardStackError(e))
+            self.stacks[i].play_cards_to(cards).map_err(|e| TableauError::CardStackError(e))
         } else {
             Err(TableauError::InvalidStackSelection)
         }
@@ -176,7 +177,7 @@ impl<C: Card> Tableau<C> {
     /// Play all provided cards to the currently hovered stack, if it exists
     pub fn play_cards_to_hovered_stack(&mut self, cards: &mut Vec<C>) -> Result<(), TableauError> {
         if let Some(i) = self.hovered_stack && i < self.stacks.len() {
-            self.stacks[i].play_cards(cards).map_err(|e| TableauError::CardStackError(e))
+            self.stacks[i].play_cards_to(cards).map_err(|e| TableauError::CardStackError(e))
         } else {
             Err(TableauError::InvalidHoveredStack)
         }
@@ -259,31 +260,11 @@ impl<C: Card> std::ops::IndexMut<usize> for Tableau<C> {
     }
 }
 
-impl<C: Card> PlayTo<C> for Tableau<C> {
-    fn play_to(&mut self, card: C) -> Result<(), C> {
-        if let Some(c) = self.hovered_stack {
-            self.stacks[c].play_to(card)
-        } else {
-            Err(card)
-        }
-    }
-}
-
 impl<C: Card> Debug for Tableau<C> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         for s in &self.stacks {
             write!(f, "||")?;
             writeln!(f, "{:?}", s)?;
-        }
-        Ok(())
-    }
-}
-
-impl<C: Card> Display for Tableau<C> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        for s in &self.stacks {
-            write!(f, "||")?;
-            writeln!(f, "{}", s)?;
         }
         Ok(())
     }

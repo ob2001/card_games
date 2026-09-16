@@ -1,4 +1,5 @@
 use std::io::{ Stdout, Write };
+use style::Stylize;
 
 use crate::{
     cards::{ FlippableCard, french_card::FrenchCard },
@@ -32,7 +33,7 @@ impl DeckToggle {
 }
 
 /// A structure containing a collection of cards which may be shuffled, drawn from, and discarded from/to
-#[derive(Clone, Debug)]
+#[derive(Clone)]
 pub struct Deck<C: Card> {
     deck: Vec<C>,
     default_discard: Option<Vec<C>>,
@@ -499,7 +500,7 @@ impl Deck<FlippableCard<FrenchCard>> {
     }
 }
 
-impl<C: Card> Display for Deck<C> {
+impl<C: Card> Debug for Deck<C> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if self.deck.len() == 0 && let Some(DeckToggle::Deck) = self.hovered {
             write!(f, "\x1b[100m  \x1b[40m")?;

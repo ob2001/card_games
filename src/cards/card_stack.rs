@@ -1,4 +1,5 @@
 use std::io::{ Stdout, Write };
+use style::Stylize;
 
 use crate::{
     cards::card_stack::CardStackError::InvalidCardSelection,
@@ -78,7 +79,7 @@ impl<C: Card> CardStack<C> {
         stdout.flush()
     }
 
-    // TODO: Finish the Horizontal LtR arm
+    // TODO: Finish other Stack Variant arms
     pub fn draw_que(&self, stdout: &mut Stdout) -> Result<(), std::io::Error> {
         match &self.variant {
             CardStackVariant::Flush => {
@@ -139,7 +140,7 @@ impl<C: Card> CardStack<C> {
     pub fn str_len(&self) -> usize {
         match self.variant {
             CardStackVariant::Flush => { self.stack.last().map_or(0, |c| c.str_len()) }
-            CardStackVariant::HorizontalLtR => { format!("{}", self).len() },
+            CardStackVariant::HorizontalLtR => { format!("{:?}", self).len() },
             CardStackVariant::HorizontalRtL => { todo!() },
             CardStackVariant::VerticalTtB => { todo!() },
             CardStackVariant::VerticalBtT => { todo!() },
@@ -309,8 +310,17 @@ impl<C: Card> CardStack<C> {
         }
     }
 
+    pub fn play_card_to(&mut self, card: C) -> Result<(), C> {
+        if self.lim == None || self.lim.unwrap_or(0) < self.stack.len() {
+            self.stack.push(card);
+            Ok(())
+        } else {
+            Err(card)
+        }
+    }
+
     /// Takes ownership of `cards` passed in
-    pub fn play_cards(&mut self, cards: &mut Vec<C>) -> Result<(), CardStackError> {
+    pub fn play_cards_to(&mut self, cards: &mut Vec<C>) -> Result<(), CardStackError> {
         if self.len() + cards.len() <= self.lim.unwrap_or(usize::MAX) {
             self.stack.append(cards);
             Ok(())
@@ -320,35 +330,7 @@ impl<C: Card> CardStack<C> {
     }
 }
 
-impl<C: Card> PlayTo<C> for CardStack<C> {
-    fn play_to(&mut self, card: C) -> Result<(), C> {
-        if self.lim == None || self.lim.unwrap_or(0) < self.stack.len() {
-            self.stack.push(card);
-            Ok(())
-        } else {
-            Err(card)
-        }
-    }
-}
-
 impl<C: Card> Debug for CardStack<C> {
-    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        if self.stack.len() == 0 && self.hovered_card != None {
-            write!(f, "\x1b[100m  \x1b[40m")?;
-        } else {
-            for (i, c) in self.stack.iter().enumerate() {
-                if let Some(sel_c) = self.hovered_card && sel_c == i {
-                    write!(f, "\x1b[100m{}\x1b[40m ", c)?;
-                } else {
-                    write!(f, "{} ", c)?;
-                }
-            }
-        }
-        Ok(())
-    }
-}
-
-impl<C: Card> Display for CardStack<C> {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         if self.stack.len() == 0 && self.hovered_card != None {
             write!(f, "\x1b[100m  \x1b[40m")?;

@@ -1,3 +1,4 @@
+use event::{ Event, KeyCode, KeyEventKind, KeyModifiers };
 use crate::{
     cards::{
         Rank, deck::{ Deck, DeckError, DeckToggle }, french_card::{ FrenchCard, FrenchRank }, tableau::{ Tableau, TableauError, TableauVariant },
@@ -16,7 +17,8 @@ pub enum KlondikeGameError {
     TableauError(TableauError),
     FoundationError(TableauError),
     PlayError,
-    HistoryError
+    HistoryError,
+    TerminalError
 }
 
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -37,7 +39,6 @@ impl KlondikeGameElement {
     }
 }
 
-#[derive(Debug)]
 pub struct KlondikeGame {
     talon: KlondikeDeck,
     tableau: KlondikeTableau,
@@ -105,7 +106,7 @@ impl KlondikeGame {
             self.tableau.play_card_to_stack(face_up_card, i).expect("Talon should not be emptied in initial setup");
 
             for s in self.tableau.stacks_mut((i + 1)..7).expect("There are 7 stacks in the Tableau") {
-                s.play_to(
+                s.play_card_to(
                     self.talon
                         .draw_card()
                         .expect("Talon should not be emptied in initial setup"))
@@ -144,17 +145,18 @@ impl KlondikeGame {
         // Draw game instructions
         queue!(stdout,
             cursor::MoveTo(0, 0),
-            style::Print(format!("{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n",
-                crate::ui::format_box_message("Keybindings", w as usize, true),
-                    " <Esc> - Exit game",
-                    " <Tab> - Cycle game element selection [Talon > Tableau > Foundation]",
-                    " <Up>/<Down> - Toggle Talon draw/play or select Tablueau/Foundation column",
-                    " <Left>/<Right> - Select card in Tableau column",
-                    " <z> - Deselect current selection",
-                    " <Ctrl> + <z> - Undo move",
-                    " <n> - Start new game",
-                    "-".repeat(w as usize))
-            ),
+        )?;
+        crate::ui::draw_box_message_que(stdout, "Klondike Keybindings", w as usize, true)?;
+        queue!(stdout,
+            cursor::MoveToNextLine(1),
+            style::Print(" <Esc> - Exit game"), cursor::MoveToNextLine(1),
+            style::Print(" <Tab> - Cycle game element selection [Talon > Tableau > Foundation]"), cursor::MoveToNextLine(1),
+            style::Print(" <Up>/<Down> - Toggle Talon draw/play or select Tablueau/Foundation column"), cursor::MoveToNextLine(1),
+            style::Print(" <Left>/<Right> - Select card in Tableau column"), cursor::MoveToNextLine(1),
+            style::Print(" <z> - Deselect current selection"), cursor::MoveToNextLine(1),
+            style::Print(" <Ctrl> + <z> - Undo move"), cursor::MoveToNextLine(1),
+            style::Print(" <n> - Start new game"), cursor::MoveToNextLine(1),
+            style::Print(format!("{}", "-".repeat(w as usize))), cursor::MoveToNextLine(1),
         )?;
         
         // Draw each dedicated game element using its designated draw() function
@@ -208,7 +210,7 @@ impl KlondikeGame {
         let mut stdout = std::io::stdout();
 
         // Set up terminal environment, draw initial game state
-        enter_game_screen(&mut stdout)?;
+        enter_game_screen_imm(&mut stdout)?;
         self.draw_imm(&mut stdout)?;
 
         // Enter interactive loop
@@ -224,6 +226,7 @@ impl KlondikeGame {
                 if let Err(err) = match event::read() {
                     Ok(ev) => {
                         match ev {
+                            Event::Resize(_, _) => clear_screen_imm(&mut stdout).map_err(|_| KlondikeGameError::TerminalError),
                             // Match on keyboard events
                             Event::Key(ke) => {
                                 match (ke.kind, ke.code, ke.modifiers) {
@@ -265,7 +268,7 @@ impl KlondikeGame {
                                     (KeyEventKind::Press, KeyCode::Char('z'), KeyModifiers::CONTROL) => self.undo_move(),
                                     (KeyEventKind::Press, KeyCode::Char('n'), _) => {
                                         self.init();
-                                        execute!(stdout, terminal::Clear(terminal::ClearType::All))?;
+                                        self.draw_imm(&mut stdout)?;
                                         continue
                                     }
                                     _ => { Ok(()) },
@@ -280,7 +283,7 @@ impl KlondikeGame {
         }
         
         // Clean up and restore terminal
-        leave_game_screen(&mut stdout)
+        leave_game_screen_imm(&mut stdout)
     }
 
     // ? Documented
@@ -589,37 +592,33 @@ impl KlondikeGame {
     }
 }
 
-/// Display format for Klondike game
+/// Debug format for Klondike game
 /// Deprecated for interactive use - Prefer using draw_que() or draw_imm() methods
-impl Display for KlondikeGame {
-    fn fmt(&self, _: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        let mut stdout = std::io::stdout();
+impl Debug for KlondikeGame {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         let (w, _h) = terminal::size().unwrap_or((50, 50));
 
-        let _ = queue!(stdout,
-                style::Print(format!("{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n",
-                crate::ui::format_box_message("Keybindings", w as usize, true),
-                    " <Esc> - Exit game",
-                    " <Tab> - Cycle game element selection [Talon > Tableau > Foundation]",
-                    " <Up>/<Down> - Toggle Talon draw/play or select Tablueau/Foundation column",
-                    " <Left>/<Right> - Select card in Tableau column",
-                    " <z> - Deselect current selection",
-                    " <Ctrl> + <z> - Undo move",
-                    " <n> - Start new game",
-                    "-".repeat(w as usize))
-                ),
-                style::Print(format!("{}\n\n", self.talon)),
-                style::Print(format!("{}\n", self.tableau)),
-                style::Print(format!("{}\n", self.foundation)),
-                style::Print(format!("Current Selection: ")),
-        );
+        write!(f, "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n",
+            crate::ui::format_box_message("Keybindings", w as usize, true),
+            " <Esc> - Exit game",
+            " <Tab> - Cycle game element selection [Talon > Tableau > Foundation]",
+            " <Up>/<Down> - Toggle Talon draw/play or select Tablueau/Foundation column",
+            " <Left>/<Right> - Select card in Tableau column",
+            " <z> - Deselect current selection",
+            " <Ctrl> + <z> - Undo move",
+            " <n> - Start new game",
+            "-".repeat(w as usize)
+        )?;
+
+        write!(f, "{:?}\n\n", self.talon)?;
+        write!(f, "{:?}\n", self.tableau)?;
+        write!(f, "{:?}\n", self.foundation)?;
+        write!(f, "Current selection: ")?;
 
         for c in &self.selected_cards.0 {
-            let _ = queue!(stdout,
-                style::Print(format!("{} ", c)),
-            );
+            write!(f, "{} ", c)?;
         }
 
-        stdout.flush().map_err(|_| std::fmt::Error)
+        Ok(())
     }
 }
